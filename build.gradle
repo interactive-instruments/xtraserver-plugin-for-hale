@@ -1,18 +1,13 @@
 plugins {
     id "de.undercouch.download" version "4.1.1"
-    id "com.diffplug.eclipse.buildproperties" version "3.24.0" apply false
     id "com.diffplug.p2.asmaven" version "3.24.0" apply false
-    id "com.diffplug.oomph.ide" version "3.24.0" apply false
-    id "com.diffplug.osgi.bndmanifest" version "3.24.0" apply false
+    id "biz.aQute.bnd.builder" version "5.1.2" apply false
     id "org.standardout.bnd-platform" version "1.7.0" apply false
 }
 
 ext {
     haleVersion = '4.0.0'
-    p2Groups = [
-            hale   : 'hale-platform',
-            eclipse: 'eclipse'
-    ]
+    p2Group = 'hale-platform'
 }
 
 allprojects {
@@ -32,8 +27,7 @@ subprojects {
 
     if (isPlugin) {
         apply plugin: 'java'
-        apply plugin: 'com.diffplug.eclipse.buildproperties'
-        apply plugin: 'com.diffplug.osgi.bndmanifest'
+        apply plugin: 'biz.aQute.bnd.builder'
 
         java {
             sourceCompatibility JavaVersion.VERSION_1_8
@@ -52,17 +46,13 @@ subprojects {
             }
         }
 
-        /*osgiBndManifest {
-            copyTo 'META-INF/MANIFEST.MF'
-        }*/
-
         afterEvaluate {
             jar.manifest.attributes(
                     '-exportcontents': 'de.ii.*',
                     '-removeheaders': 'Bnd-LastModified,Created-By,Tool,Require-Capability',
                     'Import-Package': '!javax.annotation.*,!de.ii.*,*',
                     'Bundle-Name': description,
-                    'Bundle-SymbolicName': "${name};singleton:=true",
+                    'Bundle-SymbolicName': "${group}.${name.replaceAll('-','.')};singleton:=true",
                     'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
                     'Require-Capability': 'osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"',
                     'Bundle-Vendor': 'interactive-instruments GmbH',
@@ -78,5 +68,3 @@ subprojects {
 apply from: './mvn2osgi.gradle'
 
 apply from: './hale.gradle'
-
-apply from: './eclipse.gradle'

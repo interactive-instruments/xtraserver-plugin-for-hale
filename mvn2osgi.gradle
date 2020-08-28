@@ -11,7 +11,7 @@ def pluginPaths = rootProject.subprojects.findAll {it.isPlugin}
 // required.
 configurations {
     // no need to add the plugins from p2
-    all*.exclude group: p2Groups.hale
+    all*.exclude group: p2Group
 }
 /*for (pluginPath in pluginPaths) {
     evaluationDependsOn(pluginPath)
@@ -29,7 +29,7 @@ platform {
     categoryId = 'xtraserver'
     categoryName = 'XtraServer support for hale'
 
-    feature(id: "${project.group}.hale.io.feature.xtraserver", name: 'XtraServer I/O Provider', version: project.version, provider: 'interactive instruments GmbH') {
+    feature(id: "${project.group}.xtraserver.hale.io.feature", name: 'XtraServer I/O Provider', version: project.version, provider: 'interactive instruments GmbH') {
         for (pluginPath in pluginPaths) {
             plugin project(pluginPath)
         }

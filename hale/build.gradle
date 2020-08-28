@@ -1,7 +1,7 @@
 apply plugin: 'com.diffplug.p2.asmaven'
 
 p2AsMaven {
-	group p2Groups.hale, {
+	group p2Group, {
 		repo "http://build-artifacts.wetransform.to/p2/hale/${haleVersion}"
 
 		feature 'eu.esdihumboldt.cst.feature'
