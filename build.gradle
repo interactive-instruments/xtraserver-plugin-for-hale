@@ -1,0 +1,82 @@
+plugins {
+    id "de.undercouch.download" version "4.1.1"
+    id "com.diffplug.eclipse.buildproperties" version "3.24.0" apply false
+    id "com.diffplug.p2.asmaven" version "3.24.0" apply false
+    id "com.diffplug.oomph.ide" version "3.24.0" apply false
+    id "com.diffplug.osgi.bndmanifest" version "3.24.0" apply false
+    id "org.standardout.bnd-platform" version "1.7.0" apply false
+}
+
+ext {
+    haleVersion = '4.0.0'
+    p2Groups = [
+            hale   : 'hale-platform',
+            eclipse: 'eclipse'
+    ]
+}
+
+allprojects {
+    group = 'de.interactive_instruments'
+
+    version = '1.0.0'
+
+    repositories {
+        jcenter()
+    }
+}
+
+subprojects {
+    ext {
+        isPlugin = projectDir.toPath().parent.fileName.toString() == 'plugins'
+    }
+
+    if (isPlugin) {
+        apply plugin: 'java'
+        apply plugin: 'com.diffplug.eclipse.buildproperties'
+        apply plugin: 'com.diffplug.osgi.bndmanifest'
+
+        java {
+            sourceCompatibility JavaVersion.VERSION_1_8
+            targetCompatibility JavaVersion.VERSION_1_8
+        }
+
+        evaluationDependsOn(':hale')
+
+        repositories {
+            maven {
+                url rootProject.file('hale/build/p2asmaven/maven')
+                metadataSources {
+                    mavenPom()
+                    artifact()
+                }
+            }
+        }
+
+        /*osgiBndManifest {
+            copyTo 'META-INF/MANIFEST.MF'
+        }*/
+
+        afterEvaluate {
+            jar.manifest.attributes(
+                    '-exportcontents': 'de.ii.*',
+                    '-removeheaders': 'Bnd-LastModified,Created-By,Tool,Require-Capability',
+                    'Import-Package': '!javax.annotation.*,!de.ii.*,*',
+                    'Bundle-Name': description,
+                    'Bundle-SymbolicName': "${name};singleton:=true",
+                    'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
+                    'Require-Capability': 'osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"',
+                    'Bundle-Vendor': 'interactive-instruments GmbH',
+                    'Bundle-License': "https://www.gnu.org/licenses/lgpl-3.0"
+            )
+        }
+    }
+}
+
+
+//apply from: './hale-p2.gradle'
+
+apply from: './mvn2osgi.gradle'
+
+apply from: './hale.gradle'
+
+apply from: './eclipse.gradle'

@@ -1,0 +1,28 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+
+include 'hale'
+
+new File(rootDir, 'plugins').listFiles().each { file ->
+    if (file.isDirectory()) {
+        include file.name
+        project(":${file.name}").projectDir = file
+    }
+}
+
+/*new File(rootDir, 'features').listFiles().each { file ->
+    if (file.isDirectory()) {
+        include file.name
+        project(":${file.name}").projectDir = file
+    }
+}*/
+
+def siblingDirectories = rootDir.parentFile.listFiles()
+def xtraserverConfigUtil = siblingDirectories.find({ it.name.toLowerCase().equals('xtraserver-config-util') })
+
+if (xtraserverConfigUtil) {
+    includeBuild "../${xtraserverConfigUtil.name}"
+}

@@ -1,0 +1,55 @@
+apply plugin: 'org.standardout.bnd-platform'
+
+// find the paths of all actual projects
+def pluginPaths = rootProject.subprojects.findAll {it.isPlugin}
+        .collect { ':' + it.name }
+
+// the target platform will contain every jar
+// which is added to the platform config, as
+// well as all of its transitives, with OSGi
+// metadata created automatically by bnd as
+// required.
+configurations {
+    // no need to add the plugins from p2
+    all*.exclude group: p2Groups.hale
+}
+/*for (pluginPath in pluginPaths) {
+    evaluationDependsOn(pluginPath)
+    //dependencies.add('platform', project(pluginPath))
+}*/
+
+
+platform {
+    determineImportVersions = true
+    importVersionStrategy = MAJOR
+    fetchSources = false
+    useBndHashQualifiers = false
+    useFeatureHashQualifiers = false
+    generatePlatformFeature = false
+    categoryId = 'xtraserver'
+    categoryName = 'XtraServer support for hale'
+
+    feature(id: "${project.group}.hale.io.feature.xtraserver", name: 'XtraServer I/O Provider', version: project.version, provider: 'interactive instruments GmbH') {
+        for (pluginPath in pluginPaths) {
+            plugin project(pluginPath)
+        }
+    }
+}
+// don't let stale bundles lay around
+//bundles.dependsOn(clean)
+// bundles relies on the underlying jars being built
+configurations.collectMany { it.allDependencies }.findAll { it instanceof ProjectDependency }.each {
+    bundles.dependsOn(it.dependencyProject.path + ':jar')
+}
+
+//TODO: add license + copyright
+tasks.bundleFeatures.doLast {
+    project.platform.features.values().each { def feature ->
+        File featureJar = new File(new File(project.buildDir, 'features'), "${feature.id}_${feature.version}.jar")
+
+        println "FEATURE " + featureJar.name
+    }
+}
+
+//TODO: jar signing
+

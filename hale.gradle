@@ -1,0 +1,111 @@
+import groovy.xml.XmlUtil
+
+task downloadHale(type: Download) {
+    src "https://github.com/halestudio/hale/releases/download/${haleVersion}/hale-studio-${haleVersion}-linux.gtk.x86_64.tar.gz"
+    dest new File(new File(System.getProperty("java.io.tmpdir")), "${project.name}/hale-studio-${haleVersion}-linux.gtk.x86_64.tar.gz")
+    overwrite false
+}
+
+task getHale(dependsOn: downloadHale, type: Copy) {
+    from(tarTree(downloadHale.dest)) {
+        include "hale*/**"
+        eachFile { fcd ->
+            fcd.relativePath = new RelativePath(true, fcd.relativePath.segments.drop(1))
+        }
+        includeEmptyDirs = false
+    }
+    into new File(buildDir, 'hale')
+}
+
+task cleanHale(dependsOn: getHale, type: Delete) {
+    delete new File(buildDir, 'hale/features').listFiles().findAll {it.name.startsWith("de.interactive_instruments")}
+    delete fileTree("${buildDir}/hale/plugins") {
+        include 'de.interactive_instruments*'
+    }
+    doFirst {
+        println (targetFiles.files)
+    }
+}
+
+task pluginsHale(dependsOn: [cleanHale, bundleFeatures], type: Copy) {
+    from(buildDir) {
+        include 'plugins/*'
+    }
+    new File(buildDir, 'features').listFiles().each {file ->
+        from(zipTree(file)) {
+            eachFile { fcd ->
+                fcd.relativePath = new RelativePath(true, (['features', file.name.take(file.name.lastIndexOf('.'))] + (fcd.relativePath.segments as List)) as String[])
+            }
+            includeEmptyDirs = false
+        }
+    }
+    into new File(buildDir, 'hale')
+}
+
+task patchHale(dependsOn: pluginsHale) {
+    doLast {
+        // enable debugging
+        new File(getHale.destinationDir, 'HALE.ini').append('-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005')
+
+        // cleanup bundles.info
+        def bundlesInfo = new File(getHale.destinationDir, 'configuration/org.eclipse.equinox.simpleconfigurator/bundles.info')
+        def bundlesInfoFiltered = bundlesInfo.filterLine {!it.contains("xtraserver")}
+        bundlesInfo.write(bundlesInfoFiltered.toString(), 'UTF-8')
+
+        // cleanup artifacts.xml
+        def artifactsXml = new File(getHale.destinationDir, 'artifacts.xml')
+        def repository = new XmlSlurper().parse(artifactsXml)
+        repository.artifacts.artifact
+                .findAll { it.'@id'.text().contains("xtraserver") }
+                .replaceNode {}
+
+        // add plugins to bundles.info and artifacts.xml
+        new File(buildDir, 'plugins').listFiles().each {file ->
+            def id = file.name.take(file.name.lastIndexOf('_'))
+            def rest = file.name.drop(file.name.lastIndexOf('_')+1)
+            def version = rest.take(rest.lastIndexOf('.'))
+            def size = file.size()
+            println "$id $version"
+
+            bundlesInfo.append("${id},${version},plugins/${file.name},4,false\n")
+
+            repository.artifacts.appendNode {
+                artifact(classifier: 'osgi.bundle', id: id, version: version) {
+                    'properties'(size: '1') {
+                        'property'(name: 'download.size', value: "${size}")
+                    }
+                }
+            }
+        }
+
+        // add features to artifacts.xml
+        new File(buildDir, 'features').listFiles().each {file ->
+            def id = file.name.take(file.name.lastIndexOf('_'))
+            def rest = file.name.drop(file.name.lastIndexOf('_')+1)
+            def version = rest.take(rest.lastIndexOf('.'))
+            def size = file.size()
+            println "$id $version"
+
+            repository.artifacts.appendNode {
+                artifact(classifier: 'org.eclipse.update.feature', id: id, version: version) {
+                    'properties'(size: '1') {
+                        'property'(name: 'download.size', value: "${size}")
+                    }
+                    'repositoryProperties'(size: '1') {
+                        'property'(name: 'artifact.folder', value: 'true')
+                    }
+                }
+            }
+        }
+
+        // write adjusted artifacts.xml
+        artifactsXml.write(XmlUtil.serialize(repository), 'UTF-8')
+    }
+}
+
+
+
+task hale(dependsOn: patchHale, type:Exec) {
+    workingDir new File(buildDir, 'hale')
+    commandLine './HALE'
+}

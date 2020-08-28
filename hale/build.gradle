@@ -1,0 +1,15 @@
+apply plugin: 'com.diffplug.p2.asmaven'
+
+p2AsMaven {
+	group p2Groups.hale, {
+		repo "http://build-artifacts.wetransform.to/p2/hale/${haleVersion}"
+
+		feature 'eu.esdihumboldt.cst.feature'
+		feature 'eu.esdihumboldt.hale.common.feature.base'
+		feature 'eu.esdihumboldt.hale.io.feature.core'
+
+		iu 'eu.esdihumboldt.hale.common.headless.test'
+
+		append true
+	}
+}

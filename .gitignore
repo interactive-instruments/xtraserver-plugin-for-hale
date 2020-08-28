@@ -1,0 +1,9 @@
+*.sw*
+*~
+*.iml
+build/
+.idea/
+.gradle/
+out/
+.DS_Store
+workspace/
