@@ -1,0 +1,41 @@
+
+
+description = "XtraServer Mapping I/O"
+
+dependencies {
+    implementation('de.interactive_instruments:xtraserver-config-util:1.0.9') {
+        transitive false
+    }
+
+    implementation 'hale-platform:com.google.guava:+'
+    implementation 'hale-platform:de.fhg.igd.osgi.util:+'
+    implementation 'hale-platform:de.fhg.igd.slf4jplus:+'
+    implementation 'hale-platform:eu.esdihumboldt.cst.functions.numeric:+'
+    implementation 'hale-platform:eu.esdihumboldt.cst.functions.string:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.common.align:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.common.align.io.model.jaxb:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.common.core:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.common.filter:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.common.instance:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.common.lookup:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.common.schema:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.io.jdbc:+'
+    implementation 'hale-platform:eu.esdihumboldt.hale.io.xsd:+'
+    implementation 'hale-platform:eu.esdihumboldt.util:+'
+    implementation 'hale-platform:org.apache.ws.commons.schema.XmlSchema:+'
+    implementation 'hale-platform:org.eclipse.core.contenttype:+'
+    implementation 'hale-platform:org.eclipse.osgi:+'
+    implementation 'hale-platform:org.geotools:+'
+    implementation 'hale-platform:org.opengis:+'
+    implementation 'hale-platform:org.slf4j.api:+'
+}
+
+jar.manifest.attributes(
+        'Export-Package': '!de.ii.hale.io.xtraserver.reader.handler,!de.ii.hale.io.xtraserver.writer.handler'
+)
+
+try {
+    jar.dependsOn gradle.includedBuild('xtraserver-config-util').task(':jar')
+} catch(Throwable t) {
+    //ignore
+}
