@@ -16,10 +16,15 @@
 package de.ii.xtraserver.hale.io.writer.handler;
 
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
+import de.interactive_instruments.xtraserver.config.api.MappingValueBuilder.ValueDefault;
+import eu.esdihumboldt.hale.common.align.model.Priority;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
@@ -117,6 +122,28 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 		return lastValue;
 	}
 
+	private MappingValue checkNotesForParameters(Cell propertyCell, MappingValue mappingValue) {
+		if (propertyCell.getDocumentation().containsKey(null)) {
+			List<String> docs = propertyCell.getDocumentation().get(null);
+			propertyCell.getPriority();
+
+			if (!docs.isEmpty() && docs.get(0).contains("{{XTRASERVER:")) {
+				ValueDefault valueBuilder = new MappingValueBuilder().copyOf(mappingValue);
+
+				Matcher matcher = Pattern.compile("\\{\\{XTRASERVER:(\\w+)(?:=(.+?))?}}")
+						.matcher(docs.get(0));
+
+				while (matcher.find()) {
+					valueBuilder.transformationHint(matcher.group(1), matcher.groupCount() > 1 ? matcher.group(2) : "");
+				}
+
+				return valueBuilder.build();
+			}
+		}
+
+		return mappingValue;
+	}
+
 	/**
 	 * Find the association target from the AppInfo annotation in the XSD
 	 * 
@@ -171,6 +198,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 		optionalMappingValue.ifPresent(mappingValue -> {
 			mappingValue = ensureAssociationTarget(propertyCell, mappingValue);
 
+			mappingValue = checkNotesForParameters(propertyCell, mappingValue);
+
 			mappingContext.addValueMappingToTable(targetProperty, mappingValue, tableName);
 		});
 
@@ -180,3 +209,4 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 	protected abstract Optional<MappingValue> doHandle(final Cell propertyCell,
 			final Property targetProperty);
 }
+
