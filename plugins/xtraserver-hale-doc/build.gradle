@@ -1,0 +1,96 @@
+import de.interactive_instruments.xtraserver.config.api.Doc
+import de.interactive_instruments.xtraserver.config.transformer.MultiJoinSpec
+import groovy.text.SimpleTemplateEngine
+import groovy.xml.MarkupBuilder
+import groovy.xml.XmlUtil
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath testFixtures("de.interactive_instruments:xtraserver-config-util:${configUtilVersion}")
+    }
+}
+
+plugins {
+    id 'org.kordamp.gradle.markdown' version '2.2.0'
+}
+
+description = "XtraServer plugin for hale - User Guide"
+
+ext {
+    mdSourceDir = file('src/main/markdown')
+    htmlSourceDir = file('src/main/html')
+    generatedDir = file('build/generated/resources')
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir generatedDir
+        }
+    }
+}
+
+task configUtilDocs {
+    def mdFile = new File(mdSourceDir, 'transformers.md')
+    outputs.file mdFile
+    inputs.property 'md', Doc.from(MultiJoinSpec.get())
+
+    doFirst {
+        println inputs.properties.md
+        mdFile.text = inputs.properties.md
+    }
+}
+
+markdownToHtml {
+    dependsOn configUtilDocs
+    sourceDir = mdSourceDir
+    outputDir = new File(generatedDir, 'html')
+    all = true
+}
+
+task docs {
+    dependsOn markdownToHtml
+    inputs.files markdownToHtml.outputs.files
+    inputs.property 'toc', [
+            title : 'XtraServer plugin for hale',
+            topics: [
+                    'intro.html'      : 'Introduction',
+                    'basic_workflow.html'    : 'Basic workflow',
+                    'compatibility_mode.html': 'XtraServer compatibility mode',
+                    'import.html'            : 'Import an XtraServer mapping',
+                    'export.html'            : 'Export an XtraServer mapping',
+                    'transformers.html'      : 'Automatic mapping transformations',
+                    'contact.html'           : 'Point of contact'
+            ]
+    ]
+
+    doFirst {
+        def htmlDir = inputs.files.singleFile
+        def toc = inputs.properties.toc
+
+        htmlDir.listFiles().findAll {it.isFile()}.each { file ->
+            print "${file.name}: ${toc.topics[file.name]}"
+            file.text = new SimpleTemplateEngine()
+                    .createTemplate(new File(htmlSourceDir, 'hale-wrapper.html'))
+                    .make([title: "${toc.title} - ${toc.topics[file.name]}", body: file.text])
+            println file.text
+        }
+
+        def writer = new StringWriter()
+        new MarkupBuilder(writer).toc(label: toc.title) {
+            toc.topics.each{file,title ->
+                topic(label: title, href: "html/${file}")
+            }
+        }
+        new File(generatedDir, 'toc.xml').write(XmlUtil.serialize(writer.toString()), 'UTF-8')
+    }
+}
+
+processResources.dependsOn docs
+
+jar.bnd(
+        '-removeheaders': 'Import-Package,Export-Package,Private-Package,Bundle-RequiredExecutionEnvironment,Bnd-LastModified,Created-By,Tool,Require-Capability',
+)
