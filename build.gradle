@@ -7,7 +7,9 @@ plugins {
 
 ext {
     haleVersion = '4.0.0'
+    configUtilVersion = '1.0.9'
     p2Group = 'hale-platform'
+    os = project.findProperty("os") ?: 'linux'
 }
 
 allprojects {
@@ -50,7 +52,7 @@ subprojects {
             jar.manifest.attributes(
                     '-exportcontents': 'de.ii.*',
                     '-removeheaders': 'Bnd-LastModified,Created-By,Tool,Require-Capability',
-                    'Import-Package': '!javax.annotation.*,!de.ii.*,*',
+                    'Import-Package': '!javax.annotation.*,!de.ii.xtraserver.hale.io.*,*',
                     'Bundle-Name': description,
                     'Bundle-SymbolicName': "${group}.${name.replaceAll('-','.')};singleton:=true",
                     'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',

@@ -3,31 +3,31 @@
 description = "XtraServer Mapping I/O"
 
 dependencies {
-    implementation('de.interactive_instruments:xtraserver-config-util:1.0.9') {
+    implementation("de.interactive_instruments:xtraserver-config-util:${configUtilVersion}") {
         transitive false
     }
 
-    implementation 'hale-platform:com.google.guava:+'
-    implementation 'hale-platform:de.fhg.igd.osgi.util:+'
-    implementation 'hale-platform:de.fhg.igd.slf4jplus:+'
-    implementation 'hale-platform:eu.esdihumboldt.cst.functions.numeric:+'
-    implementation 'hale-platform:eu.esdihumboldt.cst.functions.string:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.common.align:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.common.align.io.model.jaxb:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.common.core:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.common.filter:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.common.instance:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.common.lookup:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.common.schema:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.io.jdbc:+'
-    implementation 'hale-platform:eu.esdihumboldt.hale.io.xsd:+'
-    implementation 'hale-platform:eu.esdihumboldt.util:+'
-    implementation 'hale-platform:org.apache.ws.commons.schema.XmlSchema:+'
-    implementation 'hale-platform:org.eclipse.core.contenttype:+'
-    implementation 'hale-platform:org.eclipse.osgi:+'
-    implementation 'hale-platform:org.geotools:+'
-    implementation 'hale-platform:org.opengis:+'
-    implementation 'hale-platform:org.slf4j.api:+'
+    implementation "${p2Group}:com.google.guava:+"
+    implementation "${p2Group}:de.fhg.igd.osgi.util:+"
+    implementation "${p2Group}:de.fhg.igd.slf4jplus:+"
+    implementation "${p2Group}:eu.esdihumboldt.cst.functions.numeric:+"
+    implementation "${p2Group}:eu.esdihumboldt.cst.functions.string:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.common.align:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.common.align.io.model.jaxb:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.common.core:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.common.filter:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.common.instance:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.common.lookup:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.common.schema:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.io.jdbc:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.io.xsd:+"
+    implementation "${p2Group}:eu.esdihumboldt.util:+"
+    implementation "${p2Group}:org.apache.ws.commons.schema.XmlSchema:+"
+    implementation "${p2Group}:org.eclipse.core.contenttype:+"
+    implementation "${p2Group}:org.eclipse.osgi:+"
+    implementation "${p2Group}:org.geotools:+"
+    implementation "${p2Group}:org.opengis:+"
+    implementation "${p2Group}:org.slf4j.api:+"
 }
 
 jar.manifest.attributes(
