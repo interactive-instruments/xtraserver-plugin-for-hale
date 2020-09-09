@@ -86,9 +86,8 @@ public class XtraServerMappingGenerator {
    *
    * @param reporter status reporter
    * @return the generated XtraServer Mapping
-	 * 
-	 * @throws UnsupportedTransformationException if the transformation of types
-	 *             or properties is not supported
+   * @throws UnsupportedTransformationException if the transformation of types or properties is not
+   *                                            supported
    */
   public XtraServerMapping generate(final IOReporter reporter)
       throws UnsupportedTransformationException {
@@ -107,13 +106,7 @@ public class XtraServerMappingGenerator {
             "Mapping values for Feature Type " + mappingContext.getFeatureTypeName());
         // Add MappingValues from the type cell's property cells
         for (final Cell propertyCell : this.alignment.getPropertyCells(typeCell).stream()
-						.sorted(new Comparator<Cell>() {
-
-							@Override
-							public int compare(Cell c1, Cell c2) {
-								return c1.getPriority().compareTo(c2.getPriority());
-							}
-						}).collect(Collectors.toList())) {
+            .sorted(Comparator.comparing(Cell::getPriority)).collect(Collectors.toList())) {
           final String propertyTransformationIdentifier = propertyCell
               .getTransformationIdentifier();
           final PropertyTransformationHandler propertyHandler = propertyHandlerFactory
@@ -123,8 +116,7 @@ public class XtraServerMappingGenerator {
           }
           this.progress.advance(1);
         }
-			}
-			else {
+      } else {
         this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
       }
     }
@@ -132,8 +124,7 @@ public class XtraServerMappingGenerator {
   }
 
   /**
-	 * Return all property paths for which no association target could be found
-	 * in the schema.
+   * Return all property paths for which no association target could be found in the schema.
    *
    * @return list of properties with missing association targets
    */
@@ -142,3 +133,4 @@ public class XtraServerMappingGenerator {
   }
 
 }
+

@@ -4,10 +4,10 @@
   <!-- XtraServer Compatibility Mode -->
   <extension point="eu.esdihumboldt.hale.align.compatibility">
     <compatibility
-      class="de.ii.hale.io.xtraserver.compatibility.XtraServerCompatibilityMode"
-      id="de.ii.hale.io.xtraserver.compatibility"
-      key="de.ii.hale.io.xtraserver.compatibility.xtraserver"
-      name="XtraServer (new)">
+      class="de.ii.xtraserver.hale.io.compatibility.XtraServerCompatibilityMode"
+      id="de.ii.xtraserver.hale.io.compatibility"
+      key="de.ii.xtraserver.hale.io.compatibility.xtraserver"
+      name="XtraServer">
       <supportsFilter
         ref="CQL">
       </supportsFilter>
@@ -19,18 +19,18 @@
   <extension point="eu.esdihumboldt.hale.io.provider">
     <!-- XtraServer Mapping File Reader -->
     <provider
-      class="de.ii.hale.io.xtraserver.reader.XtraServerMappingFileReader"
-      id="de.ii.hale.io.xtraserver.reader"
-      name="XtraServer Mapping File (new)">
-      <contentType ref="de.ii.hale.io.xtraserver.mapping.xml"/>
+      class="de.ii.xtraserver.hale.io.reader.XtraServerMappingFileReader"
+      id="de.ii.xtraserver.hale.io.reader"
+      name="XtraServer Mapping File">
+      <contentType ref="de.ii.xtraserver.hale.io.mapping.xml"/>
     </provider>
     <!-- XtraServer Mapping File Writer -->
     <provider
-      class="de.ii.hale.io.xtraserver.writer.XtraServerMappingFileWriter"
-      id="de.ii.hale.io.xtraserver.writer"
-      name="XtraServer Mapping (new)">
-      <contentType ref="de.ii.hale.io.xtraserver.mapping.xml"/>
-      <contentType ref="de.ii.hale.io.xtraserver.mapping.archive"/>
+      class="de.ii.xtraserver.hale.io.writer.XtraServerMappingFileWriter"
+      id="de.ii.xtraserver.hale.io.writer"
+      name="XtraServer Mapping">
+      <contentType ref="de.ii.xtraserver.hale.io.mapping.xml"/>
+      <contentType ref="de.ii.xtraserver.hale.io.mapping.archive"/>
     </provider>
   </extension>
   <extension point="org.eclipse.core.contenttype.contentTypes">
@@ -38,8 +38,8 @@
     <content-type
       base-type="org.eclipse.core.runtime.xml"
       file-extensions="xml"
-      id="de.ii.hale.io.xtraserver.mapping.xml"
-      name="XtraServer Mapping File (new)"
+      id="de.ii.xtraserver.hale.io.mapping.xml"
+      name="XtraServer Mapping File"
       priority="normal">
       <describer
         class="eu.esdihumboldt.hale.util.nonosgi.contenttype.describer.XMLRootElementContentDescriber2">
@@ -52,24 +52,24 @@
     <!-- XtraServer Mapping Archive Content Type -->
     <content-type
       file-extensions="zip"
-      id="de.ii.hale.io.xtraserver.mapping.archive"
-      name="XtraServer Mapping Archive (new)"
+      id="de.ii.xtraserver.hale.io.mapping.archive"
+      name="XtraServer Mapping Archive"
       priority="normal">
     </content-type>
   </extension>
   <!-- XtraServer Alignment Functions Category -->
   <extension point="eu.esdihumboldt.hale.align.category">
     <category
-      id="de.ii.hale.io.xtraserver.functions"
-      name="XtraServer (new)">
+      id="de.ii.xtraserver.hale.io.functions"
+      name="XtraServer">
     </category>
   </extension>
   <!-- XtraServer SQL Expression Alignment Function -->
   <extension point="eu.esdihumboldt.hale.align.function">
     <propertyFunction
-      category="de.ii.hale.io.xtraserver.functions"
-      identifier="de.ii.hale.io.xtraserver.sqlExpression"
-      name="SQL Expression (new)">
+      category="de.ii.xtraserver.hale.io.functions"
+      identifier="eu.esdihumboldt.hale.io.xtraserver.sqlExpression"
+      name="SQL Expression">
       <targetProperties>
         <property
           eager="false"

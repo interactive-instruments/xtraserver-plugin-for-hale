@@ -15,6 +15,8 @@
 
 package de.ii.xtraserver.hale.io.writer.handler;
 
+import static de.interactive_instruments.xtraserver.config.transformer.MappingTransformerMultiJoins.HINT_MULTI_JOIN;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,11 +66,9 @@ import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
  */
 public final class MappingContext {
 
-  /** ADV Modellart */
-  public static final String PROPERTY_ADV_MODELLART = "ADV_MODELLART";
-
-  /** INSPIRE namespace */
-  public static final String PROPERTY_INSPIRE_NAMESPACE = "INSPIRE_NAMESPACE";
+  static final String PROPERTY_ADV_MODELLART = "ADV_MODELLART";
+  static final String PROPERTY_INSPIRE_NAMESPACE = "INSPIRE_NAMESPACE";
+  static final ImmutableList<QName> EMPTY_PATH = ImmutableList.of(new QName("__EMPTY__"));
 
   private final Alignment alignment;
   private final Map<String, Value> transformationProperties;
@@ -159,7 +159,7 @@ public final class MappingContext {
               if (tableBuilder
                   .buildDraft()
                   .getQualifiedTargetPath()
-                  .equals(ImmutableList.of(new QName("__MERGE__")))) {
+                  .equals(EMPTY_PATH)) {
                 tableBuilder.qualifiedTargetPath(ImmutableList.of());
               }
             });
@@ -328,8 +328,10 @@ public final class MappingContext {
             if (!alreadyHasTargetPath && tableDraft.getValues().isEmpty()) {
               tableBuilder.qualifiedTargetPath(targetPath);
             }
+            //TODO: transformation hint
             if (alreadyHasTargetPath && !targetPath.equals(tableDraft.getQualifiedTargetPath())) {
-              tableBuilder.qualifiedTargetPath(ImmutableList.of(new QName("__MERGE__")));
+              tableBuilder.qualifiedTargetPath(EMPTY_PATH);
+              tableBuilder.transformationHint(HINT_MULTI_JOIN, "true");
             }
             multiple = true;
             break;
@@ -337,7 +339,7 @@ public final class MappingContext {
         }
       }
       if (!multiple && alreadyHasTargetPath) {
-        tableBuilder.qualifiedTargetPath(ImmutableList.of(new QName("__MERGE__")));
+        tableBuilder.qualifiedTargetPath(EMPTY_PATH);
       }
       // set target path for connection table
       if (multiple && !targetPath.isEmpty()) {
@@ -352,7 +354,7 @@ public final class MappingContext {
           }
         }
       }
-    } else {
+    } else if(target.getDefinition().getPropertyPath() == null){
       boolean br = true;
     }
 
@@ -403,6 +405,8 @@ public final class MappingContext {
             .virtualTables()
             .applyChoicePredicates()
             .cloneColumns()
+            .joinTypes()
+            .multiJoins()
             .transform();
 
     return fannedOutmapping;
@@ -433,6 +437,4 @@ public final class MappingContext {
     }
     return repStr;
   }
-  }
-
 }

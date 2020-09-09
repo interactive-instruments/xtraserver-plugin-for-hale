@@ -17,11 +17,9 @@ package de.ii.xtraserver.hale.io.writer.handler;
 
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.interactive_instruments.xtraserver.config.api.MappingValueBuilder.ValueDefault;
-import eu.esdihumboldt.hale.common.align.model.Priority;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -122,7 +120,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 		return lastValue;
 	}
 
-	private MappingValue checkNotesForParameters(Cell propertyCell, MappingValue mappingValue) {
+	private MappingValue checkNotesForTransformationHints(Cell propertyCell, MappingValue mappingValue) {
 		if (propertyCell.getDocumentation().containsKey(null)) {
 			List<String> docs = propertyCell.getDocumentation().get(null);
 			propertyCell.getPriority();
@@ -134,7 +132,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 						.matcher(docs.get(0));
 
 				while (matcher.find()) {
-					valueBuilder.transformationHint(matcher.group(1), matcher.groupCount() > 1 ? matcher.group(2) : "");
+					valueBuilder.transformationHint(matcher.group(1), matcher.group(2) != null ? matcher.group(2) : "true");
 				}
 
 				return valueBuilder.build();
@@ -198,7 +196,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 		optionalMappingValue.ifPresent(mappingValue -> {
 			mappingValue = ensureAssociationTarget(propertyCell, mappingValue);
 
-			mappingValue = checkNotesForParameters(propertyCell, mappingValue);
+			mappingValue = checkNotesForTransformationHints(propertyCell, mappingValue);
 
 			mappingContext.addValueMappingToTable(targetProperty, mappingValue, tableName);
 		});
