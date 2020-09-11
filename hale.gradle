@@ -10,9 +10,32 @@ def getReleaseName() {
     throw new IllegalArgumentException()
 }
 
+def getPackageName() {    
+    def version = haleVersion
+    if (dev) {
+        version += "-#${dev}"
+    }
+    version += "-ii-${new Date().format( 'yyyyMMdd' )}"
+
+    if (os == 'linux') {
+        return "hale-studio-${version}-linux.gtk.x86_64.tar.gz"
+    }
+    if (os == 'windows') {
+        return "hale-studio-${version}-win32.win32.x86_64.zip"
+    }
+    throw new IllegalArgumentException()
+}
+
+def getDownloadUrl() {
+    if (dev) {
+        return "http://build-artifacts.wetransform.to/travisci/hale/${dev}/${getReleaseName()}"
+    }
+
+    return "https://github.com/halestudio/hale/releases/download/${haleVersion}/${getReleaseName()}"
+}
 
 task downloadHale(type: Download) {
-    src "https://github.com/halestudio/hale/releases/download/${haleVersion}/${getReleaseName()}"
+    src getDownloadUrl()
     dest new File(new File(System.getProperty("java.io.tmpdir")), "${project.name}/${getReleaseName()}")
     overwrite false
 }
@@ -149,3 +172,12 @@ task hale(dependsOn: patchHale, type:Exec) {
     commandLine './HALE'
 }
 
+task packageHale(dependsOn: patchHale, type: os == "windows" ? Zip : Tar) {
+    archiveFileName = getPackageName()
+    destinationDirectory = file("$buildDir/dist")
+    if (os != "windows")
+        compression = Compression.GZIP
+
+    from "$buildDir/hale"
+    into getReleaseName() - (os == "windows" ? ".zip" : ".tar.gz")
+}

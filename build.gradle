@@ -6,10 +6,11 @@ plugins {
 }
 
 ext {
-    haleVersion = '4.0.0'
+    haleVersion = project.findProperty("haleVersion") ?: '4.0.0'
     configUtilVersion = '1.0.9'
     p2Group = 'hale-platform'
     os = project.findProperty("os") ?: 'linux'
+    dev = project.findProperty("dev")
 }
 
 allprojects {

@@ -2,7 +2,7 @@ apply plugin: 'com.diffplug.p2.asmaven'
 
 p2AsMaven {
 	group p2Group, {
-		repo "http://build-artifacts.wetransform.to/p2/hale/${haleVersion}"
+		repo "http://build-artifacts.wetransform.to/p2/hale/${haleVersion.contains('.SNAPSHOT') ? haleVersion.replace('.SNAPSHOT', '-SNAPSHOT') : haleVersion}"
 
 		feature 'eu.esdihumboldt.cst.feature'
 		feature 'eu.esdihumboldt.hale.common.feature.base'
