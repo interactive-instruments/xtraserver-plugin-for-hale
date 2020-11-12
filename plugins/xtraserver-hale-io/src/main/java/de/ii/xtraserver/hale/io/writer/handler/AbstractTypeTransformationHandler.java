@@ -23,6 +23,7 @@ import javax.xml.namespace.QName;
 import org.geotools.filter.FilterFactoryImpl;
 import org.geotools.filter.text.cql2.CQL;
 import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.filter.visitor.DuplicatingFilterVisitor;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
@@ -108,10 +109,9 @@ abstract class AbstractTypeTransformationHandler implements TypeTransformationHa
 			if (sourceType.getFilter() != null) {
 				try {
 					AbstractGeotoolsFilter filter = (AbstractGeotoolsFilter) sourceType.getFilter();
-					// table.predicate(filter.getFilterTerm());
-					Filter qualifiedFilter = (Filter) CQL.toFilter(filter.getFilterTerm())
-							.accept(new ResolvePropertyNamesFilterVisitor("$T$"), null);
-					table.predicate(CQL.toCQL(qualifiedFilter));
+					Filter qualifiedFilter = (Filter) ECQL.toFilter(filter.getFilterTerm())
+							.accept(new ResolvePropertyNamesFilterVisitor("T_000_"), null);
+					table.predicate(ECQL.toCQL(qualifiedFilter).replaceAll("T_000_", "\\$T\\$."));
 				} catch (ClassCastException | CQLException e) {
 					// ignore
 				}
@@ -162,7 +162,7 @@ abstract class AbstractTypeTransformationHandler implements TypeTransformationHa
 
 		@Override
 		public Object visit(PropertyName expression, Object extraData) {
-			return filterFactory.property(tableName + "." + expression.getPropertyName());
+			return filterFactory.property(tableName + expression.getPropertyName());
 		}
 	}
 }
