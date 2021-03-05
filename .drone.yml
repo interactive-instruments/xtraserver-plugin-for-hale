@@ -16,12 +16,20 @@ pipeline:
     when:
       event: [push,tag]
 
-  publish:
+  updatesite:
     image: openjdk:8-alpine
     commands:
       - export GRADLE_USER_HOME=$${DRONE_WORKSPACE}/.gradle
-      - ./gradlew publish -PdeployUser=$DEPLOY_USER -PdeployPassword=$DEPLOY_PASSWORD
-    secrets: [ deploy_user, deploy_password]
+      - ./gradlew updatesite
+    when:
+      event: [tag]
+
+  publish:
+    image: plugins/gh-pages
+    username: ${GH_USER}
+    password: ${GH_PASSWORD}
+    pages_directory: build/public/
+    secrets: [ gh_user, gh_password]
     when:
       event: tag
 

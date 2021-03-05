@@ -28,7 +28,7 @@ platform {
     generatePlatformFeature = false
     categoryId = 'xtraserver'
     categoryName = 'XtraServer support for hale'
-
+    updateSiteDir = new File(buildDir, 'public')
     feature(id: "${project.group}.xtraserver.hale.io.feature", name: 'XtraServer I/O Provider', version: project.version, provider: 'interactive instruments GmbH') {
         for (pluginPath in pluginPaths) {
             plugin project(pluginPath)
