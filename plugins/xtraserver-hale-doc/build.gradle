@@ -6,7 +6,10 @@ import groovy.xml.XmlUtil
 
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
+        maven {
+            url "https://dl.interactive-instruments.de/repository/maven-releases/"
+        }
     }
     dependencies {
         classpath testFixtures("de.interactive_instruments:xtraserver-config-util:${configUtilVersion}")

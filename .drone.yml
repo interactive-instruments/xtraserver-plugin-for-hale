@@ -1,0 +1,35 @@
+pipeline:
+
+  load-cache:
+    image: drillster/drone-volume-cache
+    volumes: [/tmp:/cache]
+    restore: true
+    mount:
+      - .gradle/caches
+      - .gradle/wrapper
+
+  build:
+    image: openjdk:8-alpine
+    commands:
+      - export GRADLE_USER_HOME=$${DRONE_WORKSPACE}/.gradle
+      - ./gradlew build
+    when:
+      event: [push,tag]
+
+  publish:
+    image: openjdk:8-alpine
+    commands:
+      - export GRADLE_USER_HOME=$${DRONE_WORKSPACE}/.gradle
+      - ./gradlew publish -PdeployUser=$DEPLOY_USER -PdeployPassword=$DEPLOY_PASSWORD
+    secrets: [ deploy_user, deploy_password]
+    when:
+      event: tag
+
+  save-cache:
+    image: drillster/drone-volume-cache
+    volumes: [/tmp:/cache]
+    rebuild: true
+    mount:
+      - .gradle/caches
+      - .gradle/wrapper
+
