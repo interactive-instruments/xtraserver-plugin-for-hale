@@ -7,6 +7,9 @@ dependencies {
         transitive false
     }
 
+    //TODO: is this not included in hale?
+    //implementation group: 'javax.xml.bind', name: 'jaxb-api', version: '2.2.12'
+
     implementation "${p2Group}:com.google.guava:+"
     implementation "${p2Group}:de.fhg.igd.osgi.util:+"
     implementation "${p2Group}:de.fhg.igd.slf4jplus:+"
@@ -28,6 +31,8 @@ dependencies {
     implementation "${p2Group}:org.geotools:+"
     implementation "${p2Group}:org.opengis:+"
     implementation "${p2Group}:org.slf4j.api:+"
+    //implementation "${p2Group}:com.sun.xml.bind.jaxb-core:+"
+    //implementation "${p2Group}:org.glassfish.jaxb.runtime:+"
 }
 
 jar.manifest.attributes(
