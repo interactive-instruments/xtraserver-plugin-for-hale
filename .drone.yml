@@ -7,6 +7,7 @@ pipeline:
     mount:
       - .gradle/caches
       - .gradle/wrapper
+      - hale
 
   build:
     image: openjdk:8-alpine
@@ -22,16 +23,14 @@ pipeline:
       - export GRADLE_USER_HOME=$${DRONE_WORKSPACE}/.gradle
       - ./gradlew updatesite
     when:
-      event: [tag]
+      event: [push,tag]
 
   publish:
     image: plugins/gh-pages
-    username: ${GH_USER}
-    password: ${GH_PASSWORD}
     pages_directory: build/public/
-    secrets: [ gh_user, gh_password]
+    secrets: [ github_username, github_password]
     when:
-      event: tag
+      event: [push,tag]
 
   save-cache:
     image: drillster/drone-volume-cache
@@ -40,4 +39,4 @@ pipeline:
     mount:
       - .gradle/caches
       - .gradle/wrapper
-
+      - hale
