@@ -7,7 +7,7 @@ plugins {
 
 ext {
     haleVersion = project.findProperty("haleVersion") ?: '4.0.0'
-    configUtilVersion = '1.0.9'
+    configUtilVersion = '1.0.10'
     p2Group = 'hale-platform'
     os = project.findProperty("os") ?: 'linux'
     dev = project.findProperty("dev")
@@ -16,7 +16,7 @@ ext {
 allprojects {
     group = 'de.interactive_instruments'
 
-    version = '1.0.0'
+    version = '1.0.1'
 
     repositories {
         mavenCentral()
