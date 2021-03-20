@@ -17,6 +17,9 @@ package de.ii.xtraserver.hale.io.writer.handler;
 
 import static eu.esdihumboldt.hale.common.align.model.functions.AssignFunction.PARAMETER_VALUE;
 
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
+import de.interactive_instruments.xtraserver.config.api.Hints;
+import de.interactive_instruments.xtraserver.config.api.MappingValueBuilder.ValueDefault;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,13 +78,17 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
 			mappingContext.addValueMappingToTable(targetProperty, nilMappingValue, tableName);
 		}
 
-		final MappingValue mappingValue = new MappingValueBuilder().constant()
+		final ValueDefault mappingValue = new MappingValueBuilder().constant()
 				.qualifiedTargetPath(path).value(mappingContext.resolveProjectVars(value))
 				.significantForEmptiness(
-						!propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND))
-				.build();
+						!propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND));
 
-		return Optional.of(mappingValue);
+		if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
+			mappingValue.transformationHint(Hints.BOUND, propertyName(XtraServerMappingUtils.getSourceProperty(propertyCell)
+					.getDefinition().getPropertyPath()));
+		}
+
+		return Optional.of(mappingValue.build());
 	}
 
 	private boolean isNillable(PropertyEntityDefinition definition) {

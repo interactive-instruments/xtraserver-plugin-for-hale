@@ -16,7 +16,9 @@
 package de.ii.xtraserver.hale.io.writer.handler;
 
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
+import de.interactive_instruments.xtraserver.config.api.Hints;
 import de.interactive_instruments.xtraserver.config.api.MappingValueBuilder.ValueDefault;
+import eu.esdihumboldt.hale.common.align.model.Priority;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -121,25 +123,34 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 	}
 
 	private MappingValue checkNotesForTransformationHints(Cell propertyCell, MappingValue mappingValue) {
+		Optional<ValueDefault> valueBuilder = Optional.empty();
+
+		if (propertyCell.getPriority() != Priority.NORMAL) {
+      if (!valueBuilder.isPresent()) {
+        valueBuilder = Optional.of(new MappingValueBuilder().copyOf(mappingValue));
+			}
+			valueBuilder.get().transformationHint(Hints.PRIORITY,
+					String.valueOf(propertyCell.getPriority().getPriorityNumber()));
+		}
+
 		if (propertyCell.getDocumentation().containsKey(null)) {
 			List<String> docs = propertyCell.getDocumentation().get(null);
-			propertyCell.getPriority();
 
 			if (!docs.isEmpty() && docs.get(0).contains("{{XTRASERVER:")) {
-				ValueDefault valueBuilder = new MappingValueBuilder().copyOf(mappingValue);
+				if (!valueBuilder.isPresent()) {
+					valueBuilder = Optional.of(new MappingValueBuilder().copyOf(mappingValue));
+				}
 
 				Matcher matcher = Pattern.compile("\\{\\{XTRASERVER:(\\w+)(?:=(.+?))?}}")
 						.matcher(docs.get(0));
 
 				while (matcher.find()) {
-					valueBuilder.transformationHint(matcher.group(1), matcher.group(2) != null ? matcher.group(2) : "true");
+					valueBuilder.get().transformationHint(matcher.group(1), matcher.group(2) != null ? matcher.group(2) : "true");
 				}
-
-				return valueBuilder.build();
 			}
 		}
 
-		return mappingValue;
+		return valueBuilder.isPresent() ? valueBuilder.get().build() : mappingValue;
 	}
 
 	/**
