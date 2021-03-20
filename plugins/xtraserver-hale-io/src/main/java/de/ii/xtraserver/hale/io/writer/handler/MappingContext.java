@@ -407,6 +407,7 @@ public final class MappingContext {
             .cloneColumns()
             .joinTypes()
             .multiJoins()
+            .cleanNilChildren()
             .transform();
 
     return fannedOutmapping;
