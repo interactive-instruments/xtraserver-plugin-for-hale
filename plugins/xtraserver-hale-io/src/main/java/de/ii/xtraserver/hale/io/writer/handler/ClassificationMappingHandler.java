@@ -15,10 +15,12 @@
 
 package de.ii.xtraserver.hale.io.writer.handler;
 
+import com.google.common.base.Strings;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.xml.namespace.QName;
@@ -46,6 +48,8 @@ import eu.esdihumboldt.hale.common.lookup.LookupTable;
 class ClassificationMappingHandler extends AbstractPropertyTransformationHandler {
 
 	private final static String NIL_REASON = "@nilReason";
+	private final static String NOT_CLASSIFIED_ACTION = "notClassifiedAction";
+	private enum NotClassifiedActions {NULL, SOURCE, FIXED}
 
 	ClassificationMappingHandler(final MappingContext mappingContext) {
 		super(mappingContext);
@@ -91,6 +95,19 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
 				sourceValueStr = "false".equals(sourceValueStr) ? "f" : sourceValueStr;
 
 				mappingValue.keyValue(sourceValueStr, targetValueStr);
+			}
+
+			if (parameters.containsKey(NOT_CLASSIFIED_ACTION) && !parameters.get(NOT_CLASSIFIED_ACTION).isEmpty()) {
+				String action = parameters.get(NOT_CLASSIFIED_ACTION).get(0).getStringRepresentation();
+
+				if (Objects.equals(NotClassifiedActions.NULL.name(), action.toUpperCase())) {
+					mappingValue.defaultValue("NULL");
+				} else if (Objects.equals(NotClassifiedActions.FIXED.name(), Strings.commonPrefix(NotClassifiedActions.FIXED.name(), action.toUpperCase()))) {
+					final String targetValueStr = '\'' + mappingContext.resolveProjectVars(action.substring(action.indexOf(":")+1)) + '\'';
+					mappingValue.defaultValue(targetValueStr);
+				} else if (Objects.equals(NotClassifiedActions.SOURCE.name(), action.toUpperCase())) {
+					//nothing to do
+				}
 			}
 		}
 		else {
