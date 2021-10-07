@@ -34,7 +34,7 @@ platform {
             plugin project(pluginPath)
         }
     }
-    eclipseMirror = 'https://github.com/stempler/bnd-platform/files/7246922/eclipse-p2-minimal.zip'
+    eclipseMirror = 'http://philippkatz.de/eclipse-p2-minimal.tar.gz'
 }
 // don't let stale bundles lay around
 //bundles.dependsOn(clean)
