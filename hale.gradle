@@ -12,9 +12,7 @@ def getReleaseName() {
 
 def getPackageName() {    
     def version = haleVersion
-    if (dev) {
-        version += "-#${dev}"
-    }
+
     version += "-ii-${new Date().format( 'yyyyMMdd' )}"
 
     if (os == 'linux') {
@@ -28,7 +26,7 @@ def getPackageName() {
 
 def getDownloadUrl() {
     if (dev) {
-        return "http://build-artifacts.wetransform.to/travisci/hale/${dev}/${getReleaseName()}"
+        return "https://builds.wetransform.to/job/hale/job/hale~publish(master)/lastSuccessfulBuild/artifact/build/target/${getReleaseName()}"
     }
 
     return "https://github.com/halestudio/hale/releases/download/${haleVersion}/${getReleaseName()}"

@@ -6,11 +6,11 @@ plugins {
 }
 
 ext {
-    haleVersion = project.findProperty("haleVersion") ?: '4.0.0' //4.1.0.SNAPSHOT
-    configUtilVersion = '1.0.12'
+    haleVersion = project.findProperty("dev") ? '4.1.0.SNAPSHOT' : project.findProperty("haleVersion") ?: '4.0.0'
+    configUtilVersion = '1.0.13'
     p2Group = 'hale-platform'
     os = project.findProperty("os") ?: 'linux'
-    dev = project.findProperty("dev") //travis build number
+    dev = project.findProperty("dev") ?: false
 }
 
 allprojects {
