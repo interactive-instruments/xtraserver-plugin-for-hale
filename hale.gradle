@@ -2,7 +2,7 @@ import groovy.xml.XmlUtil
 
 def getReleaseName() {
     if (os == 'linux') {
-        return "hale-studio-${haleVersion}-linux.gtk.x86_64.tar.gz"
+        return "hale-studio-${haleVersion}-linux.gtk.x86_64.tar"
     }
     if (os == 'windows') {
         return "hale-studio-${haleVersion}-win32.win32.x86_64.zip"
