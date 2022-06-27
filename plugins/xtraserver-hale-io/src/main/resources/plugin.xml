@@ -32,6 +32,14 @@
       <contentType ref="de.ii.xtraserver.hale.io.mapping.xml"/>
       <contentType ref="de.ii.xtraserver.hale.io.mapping.archive"/>
     </provider>
+    <!-- XtraServer Web API Mapping File Writer -->
+    <provider
+      class="de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiMappingFileWriter"
+      id="de.ii.xtraserver.webapi.hale.io.writer"
+      name="XtraServer Web API Mapping">
+      <contentType ref="de.ii.xtraserver.webapi.hale.io.mapping.yaml"/>
+      <contentType ref="de.ii.xtraserver.webapi.hale.io.mapping.archive"/>
+    </provider>
   </extension>
   <extension point="org.eclipse.core.contenttype.contentTypes">
     <!-- XtraServer Mapping File XML Content Type -->
@@ -49,11 +57,27 @@
         </parameter>
       </describer>
     </content-type>
+    <!-- XtraServer Web API Provider File YAML Content Type -->
+    <content-type
+      base-type="org.eclipse.core.runtime.text"
+      file-extensions="yml"
+      id="de.ii.xtraserver.webapi.hale.io.mapping.yaml"
+      name="XtraServer Web API Provider File"
+      priority="normal">
+      <property name="org.eclipse.core.runtime.charset" default="UTF-8"/>
+    </content-type>
     <!-- XtraServer Mapping Archive Content Type -->
     <content-type
       file-extensions="zip"
       id="de.ii.xtraserver.hale.io.mapping.archive"
       name="XtraServer Mapping Archive"
+      priority="normal">
+    </content-type>
+    <!-- XtraServer Web API Mapping Archive Content Type -->
+    <content-type
+      file-extensions="zip"
+      id="de.ii.xtraserver.webapi.hale.io.mapping.archive"
+      name="XtraServer Web API Configuration Archive"
       priority="normal">
     </content-type>
   </extension>
