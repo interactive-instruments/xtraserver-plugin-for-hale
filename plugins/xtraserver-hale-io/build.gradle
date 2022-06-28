@@ -6,6 +6,9 @@ dependencies {
     implementation("de.interactive_instruments:xtraserver-config-util:${configUtilVersion}") {
         transitive false
     }
+    implementation("de.interactive_instruments:ldproxy-cfg-java8:${ldproxyCfgVersion}") {
+        transitive false
+    }
 
     //TODO: is this not included in hale?
     //implementation group: 'javax.xml.bind', name: 'jaxb-api', version: '2.2.12'

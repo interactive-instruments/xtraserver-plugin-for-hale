@@ -13,25 +13,23 @@
  *     interactive instruments GmbH <http://www.interactive-instruments.de>
  */
 
-package de.ii.xtraserver.hale.io.writer.handler;
+package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-
+import de.ii.xtraserver.hale.io.writer.handler.AbstractTransformationHandlerFactory;
 import eu.esdihumboldt.cst.functions.numeric.MathematicalExpressionFunction;
 import eu.esdihumboldt.cst.functions.string.RegexAnalysisFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.AssignFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.ClassificationMappingFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.FormattedStringFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.RenameFunction;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Factory for creating Property Transformation Handlers
- * 
- * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
 public class PropertyTransformationHandlerFactory
 		extends AbstractTransformationHandlerFactory<PropertyTransformationHandler> {

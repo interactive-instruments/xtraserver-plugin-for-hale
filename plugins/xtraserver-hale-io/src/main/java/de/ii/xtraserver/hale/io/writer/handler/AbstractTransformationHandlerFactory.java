@@ -15,6 +15,7 @@
 
 package de.ii.xtraserver.hale.io.writer.handler;
 
+import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,16 +25,16 @@ import java.util.Objects;
  * @param <T> TransformationHandler
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-abstract class AbstractTransformationHandlerFactory<T extends TransformationHandler<?>> {
+public abstract class AbstractTransformationHandlerFactory<T extends TransformationHandler<?>> {
 
 	private final static boolean ignoreUnknownTransformations = true;
 
 	private final Map<String, T> handlers;
-	private final MappingContext mappingContext;
+	private final IOReporter reporter;
 
-	AbstractTransformationHandlerFactory(final MappingContext mappingContext,
+	protected AbstractTransformationHandlerFactory(final IOReporter reporter,
 			final Map<String, T> handlers) {
-		this.mappingContext = mappingContext;
+		this.reporter = reporter;
 		this.handlers = handlers;
 	}
 
@@ -51,7 +52,7 @@ abstract class AbstractTransformationHandlerFactory<T extends TransformationHand
 				"Type transformation identifier is null"));
 		if (handler == null) {
 			if (ignoreUnknownTransformations) {
-				mappingContext.getReporter().warn("Transformation not supported: {0}",
+				reporter.warn("Transformation not supported: {0}",
 						typeTransformationIdentifier);
 			}
 			else {
