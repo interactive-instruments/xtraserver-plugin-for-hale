@@ -20,10 +20,14 @@ import de.ii.ldproxy.cfg.LdproxyCfg;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
+import de.interactive_instruments.xtraserver.config.api.MappingTableBuilder;
+import de.interactive_instruments.xtraserver.config.api.MappingValue;
 import de.interactive_instruments.xtraserver.config.api.XtraServerMappingBuilder;
 import eu.esdihumboldt.hale.common.align.model.Alignment;
 import eu.esdihumboldt.hale.common.align.model.Cell;
+import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
@@ -114,7 +118,8 @@ public final class MappingContext {
         Objects.requireNonNull(featureTypeName, "Feature Type name is null").toString();
     currentFeatureTypeMapping = featureTypeMappings.get(key);
     if (currentFeatureTypeMapping == null) {
-      currentFeatureTypeMapping =  new Builder().name(featureTypeName.getLocalPart());
+      currentFeatureTypeMapping =
+          new Builder().name(featureTypeName.getLocalPart()).type(Type.OBJECT);
       featureTypeMappings.put(key, currentFeatureTypeMapping);
     }
 
@@ -177,6 +182,15 @@ public final class MappingContext {
    */
   Optional<FeatureSchema.Builder> getTableMapping(String tableName) {
     return Optional.ofNullable(currentMappingTables.get(tableName));
+  }
+
+  void addValueMappingForTable(
+      final Property target, final FeatureSchema.Builder valueMapping, final String tableName) {
+    final FeatureSchema.Builder tableMapping =
+        getTableMapping(tableName)
+            .orElseThrow(() -> new IllegalArgumentException("Table " + tableName + " not found"));
+
+    tableMapping.putProperties2(valueMapping.build().getName(), (Builder) valueMapping);
   }
 
   IOReporter getReporter() {

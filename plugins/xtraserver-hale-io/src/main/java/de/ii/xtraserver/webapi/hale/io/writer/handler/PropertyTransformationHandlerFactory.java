@@ -16,18 +16,6 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraserver.hale.io.writer.handler.AbstractTransformationHandlerFactory;
-import de.ii.xtraserver.hale.io.writer.handler.AssignHandler;
-import de.ii.xtraserver.hale.io.writer.handler.ClassificationMappingHandler;
-import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToGeographicalNameSimple;
-import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToIdentifier;
-import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToLocalId;
-import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToNamespace;
-import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToUCUM;
-import de.ii.xtraserver.hale.io.writer.handler.FormattedStringHandler;
-import de.ii.xtraserver.hale.io.writer.handler.MathematicalExpressionHandler;
-import de.ii.xtraserver.hale.io.writer.handler.RegexHandler;
-import de.ii.xtraserver.hale.io.writer.handler.RenameHandler;
-import de.ii.xtraserver.hale.io.writer.handler.SqlExpressionHandler;
 import eu.esdihumboldt.cst.functions.numeric.MathematicalExpressionFunction;
 import eu.esdihumboldt.cst.functions.string.RegexAnalysisFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.AssignFunction;
@@ -42,8 +30,6 @@ import java.util.Set;
 
 /**
  * Factory for creating Property Transformation Handlers
- * 
- * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
 public class PropertyTransformationHandlerFactory
 		extends AbstractTransformationHandlerFactory<PropertyTransformationHandler> {
@@ -62,7 +48,7 @@ public class PropertyTransformationHandlerFactory
 
 	@SuppressWarnings("serial")
 	PropertyTransformationHandlerFactory(final MappingContext mappingContext) {
-		super(mappingContext, new HashMap<String, PropertyTransformationHandler>() {
+		super(mappingContext.getReporter(), new HashMap<String, PropertyTransformationHandler>() {
 
 			{
 				int i = 0;
