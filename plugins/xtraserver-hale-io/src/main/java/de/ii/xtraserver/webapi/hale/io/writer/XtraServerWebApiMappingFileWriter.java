@@ -16,9 +16,7 @@
 package de.ii.xtraserver.webapi.hale.io.writer;
 
 import com.google.common.io.Files;
-import de.ii.ldproxy.cfg.LdproxyCfg;
-import de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData;
-import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData.Builder;
+import de.ii.xtraserver.hale.io.writer.handler.UnsupportedTransformationException;
 import eu.esdihumboldt.hale.common.align.io.impl.AbstractAlignmentWriter;
 import eu.esdihumboldt.hale.common.core.io.IOProviderConfigurationException;
 import eu.esdihumboldt.hale.common.core.io.ProgressIndicator;
@@ -28,12 +26,10 @@ import eu.esdihumboldt.hale.common.core.io.project.ProjectIO;
 import eu.esdihumboldt.hale.common.core.io.project.model.Project;
 import eu.esdihumboldt.hale.common.core.io.report.IOReport;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Comparator;
+import java.util.Collections;
 
 /** Writes an Alignment to a XtraServer Web API Provider file. */
 public class XtraServerWebApiMappingFileWriter extends AbstractAlignmentWriter {
@@ -89,8 +85,6 @@ public class XtraServerWebApiMappingFileWriter extends AbstractAlignmentWriter {
       throw new IOProviderConfigurationException("No target was provided.");
     }
 
-    Path dataDir = java.nio.file.Files.createTempDirectory("ldproxy-cfg");
-
     try (final OutputStream out = getTarget().getOutput()) {
       if (getContentType().getId().equals(CONTENT_TYPE_MAPPING)) {
         progress.setCurrentTask("Writing XtraServer Web API Provider File");
@@ -103,27 +97,19 @@ public class XtraServerWebApiMappingFileWriter extends AbstractAlignmentWriter {
           Files.getNameWithoutExtension(
               Paths.get(getTarget().getLocation()).getFileName().toString());
 
-      LdproxyCfg ldproxyCfg = new LdproxyCfg(dataDir);
-      Builder builder = ldproxyCfg.builder().entity().provider();
-      builder.id(providerId);
-      FeatureProviderSqlData provider = builder.build();
-      ldproxyCfg.writeEntity(provider, out);
+      final XtraServerWebApiMappingGenerator generator = new XtraServerWebApiMappingGenerator(
+          getAlignment(), getTargetSchema(), progress,
+          Collections.unmodifiableMap(projectProperties), getProjectInfo(),
+          getProjectLocation(), reporter);
+
+      generator.generate(reporter, out, providerId);
 
       progress.advance(1);
-    } finally {
-      Runtime.getRuntime()
-          .addShutdownHook(
-              new Thread(
-                  () -> {
-                    try {
-                      java.nio.file.Files.walk(dataDir)
-                          .sorted(Comparator.reverseOrder())
-                          .map(Path::toFile)
-                          .forEach(File::delete);
-                    } catch (IOException e) {
-                      // ignore
-                    }
-                  }));
+    } catch (final UnsupportedTransformationException e) {
+      reporter.error("The transformation of the type '" + e.getTransformationIdentifier()
+          + "'  is not supported. Make sure that the XtraServer compatibility mode is enabled.");
+      reporter.setSuccess(false);
+      return reporter;
     }
 
     progress.end();

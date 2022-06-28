@@ -13,21 +13,19 @@
  *     interactive instruments GmbH <http://www.interactive-instruments.de>
  */
 
-package de.ii.xtraserver.hale.io.writer.handler;
+package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
+import de.ii.xtraserver.hale.io.writer.handler.AbstractTransformationHandlerFactory;
+import eu.esdihumboldt.hale.common.align.model.functions.JoinFunction;
+import eu.esdihumboldt.hale.common.align.model.functions.RetypeFunction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import eu.esdihumboldt.hale.common.align.model.functions.JoinFunction;
-import eu.esdihumboldt.hale.common.align.model.functions.RetypeFunction;
-
 /**
  * Factory for creating Type Transformation Handlers
- * 
- * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
 public class TypeTransformationHandlerFactory
 		extends AbstractTransformationHandlerFactory<TypeTransformationHandler> {

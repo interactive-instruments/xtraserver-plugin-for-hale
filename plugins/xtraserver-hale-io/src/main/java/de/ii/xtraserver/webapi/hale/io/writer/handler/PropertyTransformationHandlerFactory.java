@@ -13,20 +13,32 @@
  *     interactive instruments GmbH <http://www.interactive-instruments.de>
  */
 
-package de.ii.xtraserver.hale.io.writer.handler;
+package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-
+import de.ii.xtraserver.hale.io.writer.handler.AbstractTransformationHandlerFactory;
+import de.ii.xtraserver.hale.io.writer.handler.AssignHandler;
+import de.ii.xtraserver.hale.io.writer.handler.ClassificationMappingHandler;
+import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToGeographicalNameSimple;
+import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToIdentifier;
+import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToLocalId;
+import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToNamespace;
+import de.ii.xtraserver.hale.io.writer.handler.CustomFunctionAdvToUCUM;
+import de.ii.xtraserver.hale.io.writer.handler.FormattedStringHandler;
+import de.ii.xtraserver.hale.io.writer.handler.MathematicalExpressionHandler;
+import de.ii.xtraserver.hale.io.writer.handler.RegexHandler;
+import de.ii.xtraserver.hale.io.writer.handler.RenameHandler;
+import de.ii.xtraserver.hale.io.writer.handler.SqlExpressionHandler;
 import eu.esdihumboldt.cst.functions.numeric.MathematicalExpressionFunction;
 import eu.esdihumboldt.cst.functions.string.RegexAnalysisFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.AssignFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.ClassificationMappingFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.FormattedStringFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.RenameFunction;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Factory for creating Property Transformation Handlers
@@ -50,7 +62,7 @@ public class PropertyTransformationHandlerFactory
 
 	@SuppressWarnings("serial")
 	PropertyTransformationHandlerFactory(final MappingContext mappingContext) {
-		super(mappingContext.getReporter(), new HashMap<String, PropertyTransformationHandler>() {
+		super(mappingContext, new HashMap<String, PropertyTransformationHandler>() {
 
 			{
 				int i = 0;
