@@ -42,6 +42,7 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 	}
 
 	protected QName getFeatureTypeName(final Cell cell) {
+
 		final ListMultimap<String, ? extends Entity> targetEntities = cell.getTarget();
 		if (targetEntities == null || targetEntities.size() == 0) {
 			throw new IllegalStateException("No target type has been specified.");
@@ -69,6 +70,7 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 
 	@Override
 	public final FeatureSchema.Builder handle(final Cell cell) {
+
 		mappingContext.addNextFeatureSchema(getFeatureTypeName(cell));
 
 		final ListMultimap<String, ? extends Entity> sourceEntities = cell.getSource();

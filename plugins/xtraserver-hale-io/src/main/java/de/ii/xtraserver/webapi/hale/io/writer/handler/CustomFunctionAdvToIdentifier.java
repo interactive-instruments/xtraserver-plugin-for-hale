@@ -16,6 +16,7 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import java.util.Optional;
@@ -37,7 +38,7 @@ class CustomFunctionAdvToIdentifier extends FormattedStringHandler {
 	 *      Property)
 	 */
 	@Override
-	public Optional<FeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
 
 		return Optional.empty();
 	}

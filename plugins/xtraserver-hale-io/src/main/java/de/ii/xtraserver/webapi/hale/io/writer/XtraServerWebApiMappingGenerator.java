@@ -30,6 +30,7 @@ import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -46,118 +47,121 @@ import java.util.stream.Collectors;
  */
 public class XtraServerWebApiMappingGenerator {
 
-  private final Alignment alignment;
-  private final LdproxyCfg ldproxyCfg;
-  private final MappingContext mappingContext;
-  private final TypeTransformationHandlerFactory typeHandlerFactory;
-  private final PropertyTransformationHandlerFactory propertyHandlerFactory;
-  private final ProgressIndicator progress;
+    private final Alignment alignment;
+    private final LdproxyCfg ldproxyCfg;
+    private final MappingContext mappingContext;
+    private final TypeTransformationHandlerFactory typeHandlerFactory;
+    private final PropertyTransformationHandlerFactory propertyHandlerFactory;
+    private final ProgressIndicator progress;
 
-  /**
-   * Constructor
-   *
-   * @param alignment         the Alignment with all cells
-   * @param targetSchemaSpace the target schema
-   * @param progress          Progress indicator
-   * @param projectProperties project transformation properties
-   * @param projectInfo       project info
-   * @param projectLocation   project file
-   * @param reporter          reporter
-   */
-  public XtraServerWebApiMappingGenerator(final Alignment alignment,
-      final SchemaSpace targetSchemaSpace, final ProgressIndicator progress,
-      final Map<String, Value> projectProperties, final ProjectInfo projectInfo,
-      final URI projectLocation, final IOReporter reporter) throws IOException {
-    this.alignment = alignment;
-    Path dataDir = createTempDataDir();
-    this.ldproxyCfg = new LdproxyCfg(dataDir);
-    this.mappingContext = new MappingContext(alignment, targetSchemaSpace, projectProperties,
-        projectInfo, projectLocation, reporter, ldproxyCfg);
-    this.typeHandlerFactory = TypeTransformationHandler.createFactory(mappingContext);
-    this.propertyHandlerFactory = PropertyTransformationHandler.createFactory(mappingContext);
-    // Calculate the total work units for the progress indicator (+1 for
-    // writing the
-    // file)
-    int c = 1;
-    for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
-      c += this.alignment.getPropertyCells(typeCell).size() + 1;
-    }
-    progress.begin("Translating hale alignment to XtraServer Mapping file", c);
-    this.progress = progress;
-  }
+    /**
+     * Constructor
+     *
+     * @param alignment         the Alignment with all cells
+     * @param targetSchemaSpace the target schema
+     * @param progress          Progress indicator
+     * @param projectProperties project transformation properties
+     * @param projectInfo       project info
+     * @param projectLocation   project file
+     * @param reporter          reporter
+     */
+    public XtraServerWebApiMappingGenerator(final Alignment alignment,
+                                            final SchemaSpace targetSchemaSpace, final ProgressIndicator progress,
+                                            final Map<String, Value> projectProperties, final ProjectInfo projectInfo,
+                                            final URI projectLocation, final IOReporter reporter) throws IOException {
 
-  /**
-   * Generates the Mapping object
-   *
-   * @param reporter   status reporter
-   * @param providerId
-   * @return the generated XtraServer Mapping
-   * @throws UnsupportedTransformationException if the transformation of types or properties is not
-   *                                            supported
-   */
-  public void generate(final IOReporter reporter, final OutputStream out, String providerId)
-      throws UnsupportedTransformationException, IOException {
-
-    for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
-      final String typeTransformationIdentifier = typeCell.getTransformationIdentifier();
-      // Create FeatureTypeMapping from the type cells. The Mapping tables
-      // are created
-      // and added by the Type Handlers
-      this.progress.setCurrentTask("Transforming type");
-      final TypeTransformationHandler typeHandler = typeHandlerFactory
-          .create(typeTransformationIdentifier);
-      if (typeHandler != null) {
-        typeHandler.handle(typeCell);
-        this.progress.setCurrentTask(
-            "Mapping values for Feature Type " + mappingContext.getFeatureTypeName());
-        // Add MappingValues from the type cell's property cells
-        for (final Cell propertyCell : this.alignment.getPropertyCells(typeCell).stream()
-            .sorted(Comparator.comparing(Cell::getPriority)).collect(Collectors.toList())) {
-          final String propertyTransformationIdentifier = propertyCell
-              .getTransformationIdentifier();
-          final PropertyTransformationHandler propertyHandler = propertyHandlerFactory
-              .create(propertyTransformationIdentifier);
-          if (propertyHandler != null) {
-            propertyHandler.handle(new CellParentWrapper(typeCell, propertyCell));
-          }
-          this.progress.advance(1);
+        this.alignment = alignment;
+        Path dataDir = createTempDataDir();
+        this.ldproxyCfg = new LdproxyCfg(dataDir);
+        this.mappingContext = new MappingContext(alignment, targetSchemaSpace, projectProperties,
+                projectInfo, projectLocation, reporter, ldproxyCfg);
+        this.typeHandlerFactory = TypeTransformationHandler.createFactory(mappingContext);
+        this.propertyHandlerFactory = PropertyTransformationHandler.createFactory(mappingContext);
+        // Calculate the total work units for the progress indicator (+1 for
+        // writing the
+        // file)
+        int c = 1;
+        for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
+            c += this.alignment.getPropertyCells(typeCell).size() + 1;
         }
-      } else {
-        this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
-      }
+        progress.begin("Translating hale alignment to XtraServer Mapping file", c);
+        this.progress = progress;
     }
 
-    ldproxyCfg.writeEntity(mappingContext.getProviderData(providerId), out);
-  }
+    /**
+     * Generates the Mapping object
+     *
+     * @param reporter   status reporter
+     * @param providerId
+     * @return the generated XtraServer Mapping
+     * @throws UnsupportedTransformationException if the transformation of types or properties is not
+     *                                            supported
+     */
+    public void generate(final IOReporter reporter, final OutputStream out, String providerId)
+            throws UnsupportedTransformationException, IOException {
 
-  /**
-   * Return all property paths for which no association target could be found in the schema.
-   *
-   * @return list of properties with missing association targets
-   */
-  public Set<String> getMissingAssociationTargets() {
-    return this.mappingContext.getMissingAssociationTargets();
-  }
+        for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
 
-  private Path createTempDataDir() throws IOException {
-    Path dataDir = Files.createTempDirectory("ldproxy-cfg");
+            final String typeTransformationIdentifier = typeCell.getTransformationIdentifier();
+      /* Create FeatureTypeMapping from the type cells. The Mapping tables
+       are created and added by the Type Handlers*/
+            this.progress.setCurrentTask("Transforming type");
+            final TypeTransformationHandler typeHandler = typeHandlerFactory
+                    .create(typeTransformationIdentifier);
 
-    Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread(
-                () -> {
-                  try {
-                    java.nio.file.Files.walk(dataDir)
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(File::delete);
-                  } catch (IOException e) {
-                    // ignore
-                  }
-                }));
+            if (typeHandler != null) {
+                typeHandler.handle(typeCell);
+                this.progress.setCurrentTask(
+                        "Mapping values for Feature Type " + mappingContext.getFeatureTypeName());
+                // Add MappingValues from the type cell's property cells
+                for (final Cell propertyCell : this.alignment.getPropertyCells(typeCell).stream()
+                        .sorted(Comparator.comparing(Cell::getPriority)).collect(Collectors.toList())) {
 
-    return dataDir;
-  }
+                    final String propertyTransformationIdentifier = propertyCell
+                            .getTransformationIdentifier();
+                    final PropertyTransformationHandler propertyHandler = propertyHandlerFactory
+                            .create(propertyTransformationIdentifier);
+                    if (propertyHandler != null) {
+                        propertyHandler.handle(new CellParentWrapper(typeCell, propertyCell));
+                    }
+                    this.progress.advance(1);
+                }
+            } else {
+                this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
+            }
+        }
+
+        ldproxyCfg.writeEntity(mappingContext.getProviderData(providerId), out);
+    }
+
+    /**
+     * Return all property paths for which no association target could be found in the schema.
+     *
+     * @return list of properties with missing association targets
+     */
+    public Set<String> getMissingAssociationTargets() {
+        return this.mappingContext.getMissingAssociationTargets();
+    }
+
+    private Path createTempDataDir() throws IOException {
+        Path dataDir = Files.createTempDirectory("ldproxy-cfg");
+
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread(
+                                () -> {
+                                    try {
+                                        java.nio.file.Files.walk(dataDir)
+                                                .sorted(Comparator.reverseOrder())
+                                                .map(Path::toFile)
+                                                .forEach(File::delete);
+                                    } catch (IOException e) {
+                                        // ignore
+                                    }
+                                }));
+
+        return dataDir;
+    }
 
 }
 

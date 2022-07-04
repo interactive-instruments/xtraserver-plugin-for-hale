@@ -15,11 +15,22 @@
 
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
+import static eu.esdihumboldt.hale.common.align.model.functions.AssignFunction.PARAMETER_VALUE;
+
+import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
+import de.interactive_instruments.xtraserver.config.api.Hints;
 import eu.esdihumboldt.hale.common.align.model.Cell;
+import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.functions.AssignFunction;
+import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -38,8 +49,23 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
 	 * @see TransformationHandler#handle(Cell)
 	 */
 	@Override
-	public Optional<FeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
 
-		return Optional.empty();
+		ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+
+		// Assign constant value from parameters
+		final ListMultimap<String, ParameterValue> parameters = propertyCell
+				.getTransformationParameters();
+		final List<ParameterValue> valueParams = parameters.get(PARAMETER_VALUE);
+		final String value = valueParams.get(0).getStringRepresentation();
+
+		propertyBuilder.constantValue(value);
+		propertyBuilder.type(SchemaBase.Type.STRING);
+
+		if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
+			// TODO - will be implemented later on (in scope of P109n)
+		}
+
+		return Optional.of(propertyBuilder);
 	}
 }

@@ -163,11 +163,14 @@ task patchHale(dependsOn: pluginsHale) {
     }
 }
 
-
-
 task hale(dependsOn: patchHale, type:Exec) {
     workingDir new File(buildDir, 'hale')
-    commandLine './HALE'
+    if (os == 'linux') {
+        commandLine './HALE'
+    }
+    if (os == 'windows') {
+        commandLine 'cmd', '/c', 'HALE.exe'
+    }
 }
 
 task packageHale(dependsOn: patchHale, type: os == "windows" ? Zip : Tar) {

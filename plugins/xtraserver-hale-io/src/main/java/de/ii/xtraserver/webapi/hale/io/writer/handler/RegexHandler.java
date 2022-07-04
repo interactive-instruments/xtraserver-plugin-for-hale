@@ -16,6 +16,7 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import eu.esdihumboldt.cst.functions.string.RegexAnalysisFunction;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
@@ -35,7 +36,7 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
 	 *      Property)
 	 */
 	@Override
-	protected Optional<FeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	protected Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
 
 		return Optional.empty();
 	}

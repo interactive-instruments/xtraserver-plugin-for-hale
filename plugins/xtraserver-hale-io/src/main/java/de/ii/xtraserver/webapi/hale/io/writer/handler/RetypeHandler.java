@@ -16,9 +16,13 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
+import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
 import eu.esdihumboldt.hale.common.align.model.functions.RetypeFunction;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
+
 import java.util.Collection;
 
 /**
@@ -37,6 +41,15 @@ class RetypeHandler extends AbstractTypeTransformationHandler {
 	public void doHandle(final Collection<? extends Entity> sourceTypes, final Entity targetType,
 			final Cell typeCell) {
 
+		EntityDefinition sourceType = sourceTypes.iterator().next().getDefinition();
+		final TypeDefinition sourceTypeDefinition = sourceType.getType();
+		final String tableName = sourceTypeDefinition.getDisplayName();
+
+		ImmutableFeatureSchema.Builder builder = mappingContext.getFeatureBuilder();
+
+		builder.sourcePath("/" + tableName);
+//		TODO: extract label and description from XSD - see issue #14
+		builder.label(mappingContext.getFeatureTypeName());
 	}
 
 }
