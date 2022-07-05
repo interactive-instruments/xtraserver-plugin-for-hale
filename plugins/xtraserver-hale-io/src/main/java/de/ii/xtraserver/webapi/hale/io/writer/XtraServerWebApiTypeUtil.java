@@ -37,6 +37,7 @@ public class XtraServerWebApiTypeUtil {
 
         put("anyURI", SchemaBase.Type.STRING);
         put("boolean", SchemaBase.Type.BOOLEAN);
+        put("CodeWithAuthorityType", SchemaBase.Type.STRING);
         put("date", SchemaBase.Type.DATE);
         put("dateTime", SchemaBase.Type.DATETIME);
         put("decimal", SchemaBase.Type.FLOAT);
