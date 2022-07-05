@@ -46,13 +46,15 @@ class CustomFunctionAdvToIdentifier extends FormattedStringHandler {
 	@Override
 	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
 
-		final Value inspireNamespace = mappingContext
+		final Value inspireNamespaceValue = mappingContext
 				.getTransformationProperty(MappingContext.PROPERTY_INSPIRE_NAMESPACE);
+
+		String inspireNamespace = reformatVariable(inspireNamespaceValue.as(String.class));
 
 		String value = "";
 		if (!inspireNamespace.isEmpty()) {
-			value += inspireNamespace.as(String.class)
-					+ (inspireNamespace.as(String.class).endsWith("/") ? "" : "/");
+			value += inspireNamespace
+					+ (inspireNamespace.endsWith("/") ? "" : "/");
 		}
 		value += mappingContext.getFeatureTypeName() + "_{{value}}";
 

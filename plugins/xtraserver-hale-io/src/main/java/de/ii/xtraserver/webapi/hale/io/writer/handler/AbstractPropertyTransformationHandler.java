@@ -88,7 +88,6 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 //  }
 
   /**
-   *
    * @param path
    * @return The local name of the last child within the given path
    */
@@ -100,7 +99,6 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   }
 
   /**
-   *
    * @param p
    * @return The local name of the last child within the property path of the given property
    */
@@ -279,6 +277,26 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   protected PropertyDefinition getLastPropertyDefinition(Property property) {
     List<ChildContext> propertyPath = property.getDefinition().getPropertyPath();
     return propertyPath.get(propertyPath.size() - 1).getChild().asProperty();
+  }
+
+  /**
+   * Turns a variable that uses the XtraServer variable syntax ('{$some.variable}') into a web api
+   * variable name.
+   *
+   * @param value string that may be an XtraServer variable identifier
+   * @return the reformatted variable name (if value was an XtraServer variable name), otherwise the
+   * value as-is
+   */
+  protected String reformatVariable(final String value) {
+
+    String result = value;
+
+    if (value.startsWith("{$")) {
+      result = value.replaceAll("\\{\\$", "\\${");
+      // TODO - FUTURE WORK - apply further necessary replacements
+    }
+
+    return result;
   }
 }
 
