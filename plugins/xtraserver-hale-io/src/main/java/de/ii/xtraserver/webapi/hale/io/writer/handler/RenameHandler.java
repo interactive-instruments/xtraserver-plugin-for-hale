@@ -68,7 +68,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
 
     if (fs.getEffectiveSourcePaths().contains(sourcePath)) {
       // then ignore the property - at least for now
-      // TODO P109n (Joins mit mehreren Haupttabellen)
+      // TODO - FUTURE WORK (Joins with multiple main tables)
 //            mappingContext.getReporter().warn("Encountered sourcePath "+sourcePath+" again (" +pName +")");
     } else {
 

@@ -16,6 +16,7 @@
 package de.ii.xtraserver.webapi.hale.io.writer;
 
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 
@@ -33,16 +34,36 @@ public class XtraServerWebApiTypeUtil {
     public static final String XSD_NS_URI_PREFIX = "http://www.w3.org/2001/XMLSchema";
 
     public static final Map<String,SchemaBase.Type> xsdToTypeMap = new HashMap<String,SchemaBase.Type>() { {
+
         put("anyURI", SchemaBase.Type.STRING);
         put("boolean", SchemaBase.Type.BOOLEAN);
         put("date", SchemaBase.Type.DATE);
         put("dateTime", SchemaBase.Type.DATETIME);
         put("decimal", SchemaBase.Type.FLOAT);
         put("double", SchemaBase.Type.FLOAT);
-        put("PointPropertyType", SchemaBase.Type.GEOMETRY);
         put("integer", SchemaBase.Type.INTEGER);
         put("string", SchemaBase.Type.STRING);
+        put("UomIdentifier", SchemaBase.Type.STRING);
 
+        // GML Geometry types
+        put("CurvePropertyType", SchemaBase.Type.GEOMETRY);
+        put("GeometryPropertyType", SchemaBase.Type.GEOMETRY);
+        put("MultiCurvePropertyType", SchemaBase.Type.GEOMETRY);
+        put("MultiGeometryPropertyType", SchemaBase.Type.GEOMETRY);
+        put("MultiPointPropertyType", SchemaBase.Type.GEOMETRY);
+        put("MultiSurfacePropertyType", SchemaBase.Type.GEOMETRY);
+        put("PointPropertyType", SchemaBase.Type.GEOMETRY);
+
+        // GML Measure types
+        put("AngleType", SchemaBase.Type.FLOAT);
+        put("AreaType", SchemaBase.Type.FLOAT);
+        put("GridLengthType", SchemaBase.Type.FLOAT);
+        put("LengthType", SchemaBase.Type.FLOAT);
+        put("MeasureType", SchemaBase.Type.FLOAT);
+        put("ScaleType", SchemaBase.Type.FLOAT);
+        put("SpeedType", SchemaBase.Type.FLOAT);
+        put("TimeType", SchemaBase.Type.FLOAT);
+        put("VolumeType", SchemaBase.Type.FLOAT);
     }
 
     };
@@ -61,6 +82,7 @@ public class XtraServerWebApiTypeUtil {
                 reporter.warn("DEV - Add type mapping for GML type "+localPart);
                 return SchemaBase.Type.STRING;
             }
+
         } else if(tdName.getNamespaceURI().equalsIgnoreCase(XSD_NS_URI_PREFIX)) {
 
             // TODO same as above, merge later

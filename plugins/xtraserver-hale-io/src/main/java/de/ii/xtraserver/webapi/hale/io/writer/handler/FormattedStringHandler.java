@@ -55,11 +55,6 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
   public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
       final Property targetProperty) {
 
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
-
-    PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
-    TypeDefinition td = pd.getPropertyType();
-
     // Get the formatted string from parameters
     final ListMultimap<String, ParameterValue> parameters = propertyCell
         .getTransformationParameters();
@@ -73,12 +68,17 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
         mappingContext.resolveProjectVars(pattern));
     final int patternLength = formattedStr.length();
 
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+
+    PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
+    TypeDefinition td = pd.getPropertyType();
+
     // check if the property has already been established
-    // TODO P109n (multiplicity not supported in P109m)
+    // TODO - FUTURE WORK (multiplicity not supported yet)
     if (!propertyBuilder.build().getEffectiveSourcePaths().isEmpty()) {
       String targetPropertyName = targetProperty.getDefinition().getDefinition().getDisplayName();
       mappingContext.getReporter().warn(
-          "Multiple Formatted string relations for same target property ({0}) not supported yet. Only the first encountered relationship will be encoded. Ignoring pattern {1}.",
+          "Multiple 'Formatted string'-relations for same target property ({0}) not supported yet. Only the first encountered relationship will be encoded. Ignoring pattern {1}.",
           fullDisplayPath(targetProperty), pattern);
       return Optional.of(propertyBuilder);
     }
@@ -129,7 +129,7 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
       if (isObjectReference) {
 
         // get feature type name from string pattern
-        Pattern typePattern = Pattern.compile("^#(\\w+_)(.*)$");
+        Pattern typePattern = Pattern.compile("^#?(\\w+_)(.*)$");
         Matcher mtp = typePattern.matcher(resultingString);
 
         if (mtp.matches()) {
