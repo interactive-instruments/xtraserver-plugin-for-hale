@@ -49,9 +49,6 @@ class CustomFunctionAdvToIdentifier extends FormattedStringHandler {
 		final Value inspireNamespace = mappingContext
 				.getTransformationProperty(MappingContext.PROPERTY_INSPIRE_NAMESPACE);
 
-		final String propertyName = propertyName(XtraServerMappingUtils
-				.getSourceProperty(propertyCell).getDefinition().getPropertyPath());
-
 		String value = "";
 		if (!inspireNamespace.isEmpty()) {
 			value += inspireNamespace.as(String.class)

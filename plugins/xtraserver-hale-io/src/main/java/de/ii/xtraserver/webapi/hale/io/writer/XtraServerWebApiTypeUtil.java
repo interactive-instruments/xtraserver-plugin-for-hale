@@ -42,6 +42,7 @@ public class XtraServerWebApiTypeUtil {
         put("dateTime", SchemaBase.Type.DATETIME);
         put("decimal", SchemaBase.Type.FLOAT);
         put("double", SchemaBase.Type.FLOAT);
+        put("ID", SchemaBase.Type.STRING);
         put("integer", SchemaBase.Type.INTEGER);
         put("string", SchemaBase.Type.STRING);
         put("UomIdentifier", SchemaBase.Type.STRING);

@@ -87,11 +87,25 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 //        : property.getName();
 //  }
 
+  /**
+   *
+   * @param path
+   * @return The local name of the last child within the given path
+   */
   protected static String propertyName(final List<ChildContext> path) {
     if (path == null || path.isEmpty()) {
       return "";
     }
     return path.get(path.size() - 1).getChild().getName().getLocalPart();
+  }
+
+  /**
+   *
+   * @param p
+   * @return The local name of the last child within the property path of the given property
+   */
+  protected static String propertyName(final Property p) {
+    return propertyName(p.getDefinition().getPropertyPath());
   }
 
   protected static String getSingleProperty(final ListMultimap<String, ParameterValue> parameters,
