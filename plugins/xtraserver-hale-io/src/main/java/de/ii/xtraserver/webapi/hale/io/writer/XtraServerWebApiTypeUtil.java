@@ -33,6 +33,7 @@ public class XtraServerWebApiTypeUtil {
     public static final String XSD_NS_URI_PREFIX = "http://www.w3.org/2001/XMLSchema";
 
     public static final Map<String,SchemaBase.Type> xsdToTypeMap = new HashMap<String,SchemaBase.Type>() { {
+        put("anyURI", SchemaBase.Type.STRING);
         put("boolean", SchemaBase.Type.BOOLEAN);
         put("date", SchemaBase.Type.DATE);
         put("dateTime", SchemaBase.Type.DATETIME);

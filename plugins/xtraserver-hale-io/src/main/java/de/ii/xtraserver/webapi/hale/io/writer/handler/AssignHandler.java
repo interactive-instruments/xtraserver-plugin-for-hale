@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2017 interactive instruments GmbH
- * 
+ *
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this distribution. If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contributors:
  *     interactive instruments GmbH <http://www.interactive-instruments.de>
  */
@@ -23,6 +23,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
 import de.interactive_instruments.xtraserver.config.api.Hints;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
@@ -38,34 +39,49 @@ import java.util.Optional;
  */
 class AssignHandler extends AbstractPropertyTransformationHandler {
 
-	private final static String XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
-	private final static String NIL_REASON = "@nilReason";
+//  private final static String XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
+//  private final static String NIL_REASON = "@nilReason";
 
-	AssignHandler(final MappingContext mappingContext) {
-		super(mappingContext);
-	}
+  AssignHandler(final MappingContext mappingContext) {
+    super(mappingContext);
+  }
 
-	/**
-	 * @see TransformationHandler#handle(Cell)
-	 */
-	@Override
-	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+  /**
+   * @see TransformationHandler#handle(Cell)
+   */
+  @Override
+  public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
+      final Property targetProperty) {
 
-		ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+    // Assign constant value from parameters
+    final ListMultimap<String, ParameterValue> parameters = propertyCell
+        .getTransformationParameters();
+    final List<ParameterValue> valueParams = parameters.get(PARAMETER_VALUE);
+    final String value = valueParams.get(0).getStringRepresentation();
 
-		// Assign constant value from parameters
-		final ListMultimap<String, ParameterValue> parameters = propertyCell
-				.getTransformationParameters();
-		final List<ParameterValue> valueParams = parameters.get(PARAMETER_VALUE);
-		final String value = valueParams.get(0).getStringRepresentation();
+    /*
+     * Check if the assignment is a case to generally be ignored.
+     */
+    PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
+    String lastTgtPropName = pdTgtLast.getName().getLocalPart();
+    // TODO - check that codeSpace is an XML attribute (like for nilReason)?
+    if (lastTgtPropName.equals("codeSpace") && value.equals("http://inspire.ec.europa.eu/ids")) {
+//			mappingContext.getReporter().info("Ignoring Assign relationship for target property 'codeSpace' with value 'http://inspire.ec.europa.eu/ids'.");
+      return Optional.empty();
+    }
 
-		propertyBuilder.constantValue(value);
-		propertyBuilder.type(SchemaBase.Type.STRING);
+    // property creation only after ignore-check (see above):
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
-		if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
-			// TODO - will be implemented later on (in scope of P109n)
-		}
+    propertyBuilder.constantValue(value);
+    propertyBuilder.type(
+        XtraServerWebApiTypeUtil.getWebApiType(pdTgtLast.getPropertyType(),
+            this.mappingContext.getReporter()));
 
-		return Optional.of(propertyBuilder);
-	}
+    if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
+      // TODO P109n
+    }
+
+    return Optional.of(propertyBuilder);
+  }
 }

@@ -52,25 +52,40 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     this.mappingContext = mappingContext;
   }
 
-  protected List<QName> buildPath(final List<ChildContext> path) {
-    return buildPath(path, false);
-  }
+//  protected List<QName> buildPath(final List<ChildContext> path) {
+//    return buildPath(path, false);
+//  }
 
-  protected List<QName> buildPathWithoutLast(final List<ChildContext> path) {
-    return buildPath(path, true);
-  }
+//  protected List<QName> buildPathWithoutLast(final List<ChildContext> path) {
+//    return buildPath(path, true);
+//  }
 
-  protected List<QName> buildPath(final List<ChildContext> path, final boolean withoutLast) {
+//  protected List<QName> buildPath(final List<ChildContext> path, final boolean withoutLast) {
+//    return path.stream().map(segment -> segment.getChild().asProperty())
+//        .filter(Objects::nonNull).map(toPropertyNameWithAttributePrefix())
+//        .limit(withoutLast ? path.size() - 1 : path.size()).collect(Collectors.toList());
+//  }
+
+  /**
+   * Creates a string-representation of the full (property) path for the given property. The result
+   * can, for example, be used in report messages.
+   *
+   * @param property the property for which to create the display path, typically the source or
+   *                 target property of a property relationship
+   * @return local names of the path properties, dot-concatenated
+   */
+  protected String fullDisplayPath(final Property property) {
+    final List<ChildContext> path = property.getDefinition().getPropertyPath();
     return path.stream().map(segment -> segment.getChild().asProperty())
-        .filter(Objects::nonNull).map(toPropertyNameWithAttributePrefix())
-        .limit(withoutLast ? path.size() - 1 : path.size()).collect(Collectors.toList());
+        .filter(Objects::nonNull).map(segment -> segment.getName().getLocalPart())
+        .collect(Collectors.joining("."));
   }
 
-  private Function<PropertyDefinition, QName> toPropertyNameWithAttributePrefix() {
-    return property -> property.getConstraint(XmlAttributeFlag.class).isEnabled() ? new QName(
-        property.getName().getNamespaceURI(), "@" + property.getName().getLocalPart())
-        : property.getName();
-  }
+//  private Function<PropertyDefinition, QName> toPropertyNameWithAttributePrefix() {
+//    return property -> property.getConstraint(XmlAttributeFlag.class).isEnabled() ? new QName(
+//        property.getName().getNamespaceURI(), "@" + property.getName().getLocalPart())
+//        : property.getName();
+//  }
 
   protected static String propertyName(final List<ChildContext> path) {
     if (path == null || path.isEmpty()) {
@@ -116,7 +131,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
    * @param targetProperty target property to analyze
    * @return association target as String
    */
-  private String getTargetFromSchema(final Property targetProperty) {
+  protected String getTargetFromSchema(final Property targetProperty) {
     if (targetProperty.getDefinition().getPropertyPath().isEmpty()) {
       return null;
     }
@@ -161,6 +176,16 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
       mappingContext.getReporter().warn(
           "Cell could not be exported, source or target property is not set (Table: {0}, Source: {1}, Target: {2})",
           cellParentWrapper.getTableName(), sourceProperty, targetProperty);
+      return null;
+    }
+
+    /*
+     * Check if target property is a case to generally be ignored.
+     */
+    PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
+    if (pdTgtLast.getConstraint(XmlAttributeFlag.class).isEnabled() &&
+        pdTgtLast.getName().getLocalPart().equals("nilReason")) {
+//      mappingContext.getReporter().info("Ignoring relationship for target property {0}.",targetProperty.getDefinition().getDefinition().getDisplayName());
       return null;
     }
 
@@ -220,6 +245,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
             propertyBuilder.type(SchemaBase.Type.OBJECT);
 
             // TODO How to identify when to set objectType = LINK?
+            // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get TargetFromSchema)
+            // case: Codelist URL
             ChildDefinition cdNext = propertyPath.get(i + 1).getChild();
             PropertyDefinition pdNext = cdNext.asProperty();
             if (pdNext.getName().toString().equals("{http://www.w3.org/1999/xlink}href")) {
