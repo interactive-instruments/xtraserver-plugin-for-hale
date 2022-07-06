@@ -64,6 +64,16 @@ class CustomFunctionAdvToLocalId extends FormattedStringHandler {
 
       propertyBuilder.role(Role.ID);
 
+      ImmutableFeatureSchema.Builder featureBuilder = this.mappingContext.getFeatureBuilder();
+      ImmutableFeatureSchema featureDraft = featureBuilder.build();
+      // TODO - currently we assume that sourcePath is set (could be different in the future)
+      if(featureDraft.getSourcePath().isPresent()) {
+        String featureSourcePath = featureDraft.getSourcePath().get();
+        // TODO - merge sourcePath conditions (e.g. if a filter already exists)?
+        featureSourcePath += "{sortKey=" + sourcePath + "}";
+        featureBuilder.sourcePath(featureSourcePath);
+      }
+
     } else {
 
       ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();

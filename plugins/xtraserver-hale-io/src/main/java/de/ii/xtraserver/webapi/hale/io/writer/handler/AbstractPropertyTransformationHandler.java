@@ -32,6 +32,7 @@ import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAttributeFlag;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -256,13 +257,13 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
             // still within the path, create object
             propertyBuilder.type(SchemaBase.Type.OBJECT);
 
-            // TODO How to identify when to set objectType = LINK?
+            // TODO How to identify when to set objectType = Link?
             // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get TargetFromSchema)
             // case: Codelist URL
             ChildDefinition cdNext = propertyPath.get(i + 1).getChild();
             PropertyDefinition pdNext = cdNext.asProperty();
             if (pdNext.getName().toString().equals("{http://www.w3.org/1999/xlink}href")) {
-              propertyBuilder.objectType("LINK");
+              propertyBuilder.objectType("Link");
             }
           }
         }
@@ -274,6 +275,10 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     return propertyBuilder;
   }
 
+  /**
+   * @param property
+   * @return the last child (as a property) within the property path of the given property
+   */
   protected PropertyDefinition getLastPropertyDefinition(Property property) {
     List<ChildContext> propertyPath = property.getDefinition().getPropertyPath();
     return propertyPath.get(propertyPath.size() - 1).getChild().asProperty();
@@ -292,8 +297,14 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     String result = value;
 
     if (value.startsWith("{$")) {
-      result = value.replaceAll("\\{\\$", "\\${");
-      // TODO - FUTURE WORK - apply further necessary replacements
+
+      result = value.substring(2,value.length()-1);
+
+      // TODO - FUTURE WORK: leave variable name as is, once they can be set via cfg.yml
+      result = result.toUpperCase(Locale.ENGLISH);
+      result = result.replaceAll("\\.","_");
+
+      result = "${" + result + "}";
     }
 
     return result;
