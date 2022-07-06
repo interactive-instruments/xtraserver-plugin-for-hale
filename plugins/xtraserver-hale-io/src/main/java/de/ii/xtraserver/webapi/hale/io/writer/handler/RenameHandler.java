@@ -18,7 +18,9 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
@@ -29,6 +31,7 @@ import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.functions.RenameFunction;
 import eu.esdihumboldt.hale.common.schema.model.*;
 
+import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
 import javax.xml.namespace.QName;
 import java.sql.Array;
 import java.util.ArrayList;
@@ -56,12 +59,36 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
     ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
     PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
-
     TypeDefinition td = pd.getPropertyType();
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
     String sourcePath = sourceProperty
         .getDefinition().getDefinition().getDisplayName();
+
+    setTypesAndSourcePaths(propertyBuilder, targetProperty, sourcePath);
+
+    return Optional.of(propertyBuilder);
+  }
+
+  /**
+   * Will set type fields in the builder, i.e. 'type', and 'valueType' (if applicable) - depending
+   * upon the type definition and the cardinality of the target property (more precisely, the last
+   * property in its property path). In addition, if multiple sourcePaths are added to the builder
+   * (e.g. because of another property relation with the same target property), 'type' will be set
+   * to VALUE_ARRAY, and 'valueType' will be set depending upon the type definition. In that case,
+   * the value of 'sourcePath' will be moved to 'sourcePaths' as well (if not already done).
+   *
+   * @param propertyBuilder the builder created for the target property
+   * @param targetProperty  the target of a property relation (as provided to property handlers)
+   * @param sourcePath      the source path to set/add
+   */
+  private void setTypesAndSourcePaths(Builder propertyBuilder, Property targetProperty,
+      String sourcePath) {
+
+    PropertyDefinition targetPd = getLastPropertyDefinition(targetProperty);
+    TypeDefinition td = targetPd.getPropertyType();
+    SchemaBase.Type baseType = XtraServerWebApiTypeUtil.getWebApiType(td,
+        this.mappingContext.getReporter());
 
     // build the current schema structure for inspection
     FeatureSchema fs = propertyBuilder.build();
@@ -73,24 +100,28 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
     } else {
 
       if (!fs.getSourcePath().isPresent() && fs.getSourcePaths().isEmpty()) {
+
         // the property has not been created yet
-        propertyBuilder.sourcePath(sourcePath).type(
-            XtraServerWebApiTypeUtil.getWebApiType(td, this.mappingContext.getReporter()));
+        propertyBuilder.sourcePath(sourcePath);
+        if (isMultiValuedPropertyPerSchemaDefinition(targetPd)) {
+          propertyBuilder.type(Type.VALUE_ARRAY);
+          propertyBuilder.valueType(baseType);
+        } else {
+          propertyBuilder.type(baseType);
+        }
 
       } else {
 
         if (fs.getSourcePath().isPresent() && fs.getSourcePaths().isEmpty()) {
 
-              /* multiplicity needs to be considered -
-              We encountered another cell that applies to the same target property
+              /* We encountered another cell that applies to the same target property
               (with different source path). */
 
           // move current sourcePath to sourcePaths, then unset sourcePath
           propertyBuilder.addSourcePaths(fs.getSourcePath().get());
           propertyBuilder.sourcePath(Optional.empty());
 
-          // Switch type to value type, and set type to VALUE_ARRAY.
-          propertyBuilder.valueType(fs.getType());
+          propertyBuilder.valueType(baseType);
           propertyBuilder.type(SchemaBase.Type.VALUE_ARRAY);
         }
 
@@ -99,6 +130,5 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
       }
     }
 
-    return Optional.of(propertyBuilder);
   }
 }

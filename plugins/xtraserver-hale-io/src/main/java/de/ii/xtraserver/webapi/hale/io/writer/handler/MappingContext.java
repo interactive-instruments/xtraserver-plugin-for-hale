@@ -99,6 +99,14 @@ public final class MappingContext {
     }
 
     /**
+     *
+     * @return map with key: QName of target feature type as string, value: the respective builder
+     */
+    public Map<String, ImmutableFeatureSchema.Builder> getFeatureTypeMappings() {
+        return this.featureTypeMappings;
+    }
+
+    /**
      * Add a new ImmutableFeatureSchema to the mapping context
      *
      * @param featureTypeName feature type name
@@ -191,7 +199,7 @@ public final class MappingContext {
         tableMapping.putProperties2(valueMapping.build().getName(), (Builder) valueMapping);
     }
 
-    IOReporter getReporter() {
+    public IOReporter getReporter() {
         return reporter;
     }
 
@@ -232,6 +240,8 @@ public final class MappingContext {
 
         return providerData.build();
     }
+
+
 
     /**
      * Replace project variables in a string

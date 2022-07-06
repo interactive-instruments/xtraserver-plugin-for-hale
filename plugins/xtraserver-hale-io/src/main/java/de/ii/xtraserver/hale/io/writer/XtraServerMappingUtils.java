@@ -20,6 +20,9 @@ import com.google.common.collect.ListMultimap;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.align.model.Property;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
+import eu.esdihumboldt.hale.io.xsd.constraint.XmlElements;
+import javax.xml.namespace.QName;
 
 /**
  * Utility methods for mapping generation.
@@ -58,6 +61,24 @@ public class XtraServerMappingUtils {
 		}
 
 		return null;
+	}
+
+	public static QName getFeatureTypeName(final Cell typeCell) {
+
+		final ListMultimap<String, ? extends Entity> targetEntities = typeCell.getTarget();
+		if (targetEntities == null || targetEntities.size() == 0) {
+			throw new IllegalStateException("No target type has been specified.");
+		}
+		final Entity targetType = targetEntities.values().iterator().next();
+		final TypeDefinition targetTypeDefinition = targetType.getDefinition().getType();
+		final XmlElements constraints = targetTypeDefinition.getConstraint(XmlElements.class);
+		if (constraints == null || constraints.getElements().size() == 0) {
+			throw new IllegalStateException("No constraint has been specified.");
+		}
+		else if (constraints.getElements().size() > 1) {
+			throw new IllegalStateException("More than one constraint has been specified.");
+		}
+		return constraints.getElements().iterator().next().getName();
 	}
 
 }

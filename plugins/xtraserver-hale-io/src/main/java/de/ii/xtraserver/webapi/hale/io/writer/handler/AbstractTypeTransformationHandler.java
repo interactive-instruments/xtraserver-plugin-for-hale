@@ -17,13 +17,17 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraserver.hale.io.compatibility.XtraServerCompatibilityMode;
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import eu.esdihumboldt.hale.common.schema.model.constraint.type.PrimaryKey;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlElements;
 import java.util.Collection;
+import java.util.Map;
 import javax.xml.namespace.QName;
 import org.geotools.filter.FilterFactoryImpl;
 import org.geotools.filter.visitor.DuplicatingFilterVisitor;
@@ -41,24 +45,6 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 		this.mappingContext = mappingContext;
 	}
 
-	protected QName getFeatureTypeName(final Cell cell) {
-
-		final ListMultimap<String, ? extends Entity> targetEntities = cell.getTarget();
-		if (targetEntities == null || targetEntities.size() == 0) {
-			throw new IllegalStateException("No target type has been specified.");
-		}
-		final Entity targetType = targetEntities.values().iterator().next();
-		final TypeDefinition targetTypeDefinition = targetType.getDefinition().getType();
-		final XmlElements constraints = targetTypeDefinition.getConstraint(XmlElements.class);
-		if (constraints == null || constraints.getElements().size() == 0) {
-			throw new IllegalStateException("No constraint has been specified.");
-		}
-		else if (constraints.getElements().size() > 1) {
-			throw new IllegalStateException("More than one constraint has been specified.");
-		}
-		return constraints.getElements().iterator().next().getName();
-	}
-
 	protected String getPrimaryKey(final TypeDefinition definition) {
 		final PrimaryKey primaryKey = definition.getConstraint(PrimaryKey.class);
 		if (primaryKey == null || primaryKey.getPrimaryKeyPath() == null
@@ -71,7 +57,7 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 	@Override
 	public final FeatureSchema.Builder handle(final Cell cell) {
 
-		mappingContext.addNextFeatureSchema(getFeatureTypeName(cell));
+		mappingContext.addNextFeatureSchema(XtraServerMappingUtils.getFeatureTypeName(cell));
 
 		final ListMultimap<String, ? extends Entity> sourceEntities = cell.getSource();
 		if (sourceEntities == null || sourceEntities.size() == 0) {

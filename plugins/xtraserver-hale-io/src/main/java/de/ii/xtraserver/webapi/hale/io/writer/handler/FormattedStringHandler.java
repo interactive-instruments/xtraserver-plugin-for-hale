@@ -18,6 +18,8 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
@@ -172,8 +174,14 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
       propertyBuilder.constantValue(formattedStr.toString());
     }
 
-    propertyBuilder.type(
-        XtraServerWebApiTypeUtil.getWebApiType(td, this.mappingContext.getReporter()));
+    SchemaBase.Type baseType = XtraServerWebApiTypeUtil.getWebApiType(td,
+        this.mappingContext.getReporter());
+    if (isMultiValuedPropertyPerSchemaDefinition(pd)) {
+      propertyBuilder.type(Type.VALUE_ARRAY);
+      propertyBuilder.valueType(baseType);
+    } else {
+      propertyBuilder.type(baseType);
+    }
 
     return Optional.of(propertyBuilder);
   }

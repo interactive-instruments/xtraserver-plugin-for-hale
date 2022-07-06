@@ -21,6 +21,7 @@ import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
@@ -74,9 +75,15 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
     propertyBuilder.constantValue(value);
-    propertyBuilder.type(
-        XtraServerWebApiTypeUtil.getWebApiType(pdTgtLast.getPropertyType(),
-            this.mappingContext.getReporter()));
+
+    SchemaBase.Type baseType = XtraServerWebApiTypeUtil.getWebApiType(pdTgtLast.getPropertyType(),
+        this.mappingContext.getReporter());
+    if (isMultiValuedPropertyPerSchemaDefinition(pdTgtLast)) {
+      propertyBuilder.type(Type.VALUE_ARRAY);
+      propertyBuilder.valueType(baseType);
+    } else {
+      propertyBuilder.type(baseType);
+    }
 
     if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
       // TODO - FUTURE WORK

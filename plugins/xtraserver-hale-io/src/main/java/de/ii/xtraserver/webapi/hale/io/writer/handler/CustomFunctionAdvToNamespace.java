@@ -18,6 +18,7 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
 import de.interactive_instruments.xtraserver.config.api.MappingValue;
 import de.interactive_instruments.xtraserver.config.api.MappingValueBuilder;
@@ -61,7 +62,14 @@ class CustomFunctionAdvToNamespace extends FormattedStringHandler {
 			ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
 			propertyBuilder.constantValue(value);
-			propertyBuilder.type(SchemaBase.Type.STRING);
+
+			SchemaBase.Type baseType = SchemaBase.Type.STRING;
+			if (isMultiValuedPropertyPerSchemaDefinition(getLastPropertyDefinition(targetProperty))) {
+				propertyBuilder.type(Type.VALUE_ARRAY);
+				propertyBuilder.valueType(baseType);
+			} else {
+				propertyBuilder.type(baseType);
+			}
 
 			return Optional.of(propertyBuilder);
 		}

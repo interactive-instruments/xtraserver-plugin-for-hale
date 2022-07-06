@@ -20,14 +20,18 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.CellParentWrapper;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.ChildContext;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.schema.model.ChildDefinition;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
+import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAttributeFlag;
@@ -254,8 +258,14 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
           propertyBuilder.name(pName);
 
           if (i < propertyPath.size() - 1) {
-            // still within the path, create object
-            propertyBuilder.type(SchemaBase.Type.OBJECT);
+
+            // still within the path, create object / object array
+            Cardinality card = pd.getConstraint(Cardinality.class);
+            if (card != null && card.getMaxOccurs() != 1) {
+              propertyBuilder.type(SchemaBase.Type.OBJECT_ARRAY);
+            } else {
+              propertyBuilder.type(SchemaBase.Type.OBJECT);
+            }
 
             // TODO How to identify when to set objectType = Link?
             // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get TargetFromSchema)
@@ -298,16 +308,21 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
     if (value.startsWith("{$")) {
 
-      result = value.substring(2,value.length()-1);
+      result = value.substring(2, value.length() - 1);
 
       // TODO - FUTURE WORK: leave variable name as is, once they can be set via cfg.yml
       result = result.toUpperCase(Locale.ENGLISH);
-      result = result.replaceAll("\\.","_");
+      result = result.replaceAll("\\.", "_");
 
       result = "${" + result + "}";
     }
 
     return result;
+  }
+
+  protected boolean isMultiValuedPropertyPerSchemaDefinition(PropertyDefinition targetPd) {
+    Cardinality card = targetPd.getConstraint(Cardinality.class);
+    return card != null && card.getMaxOccurs() != 1;
   }
 }
 
