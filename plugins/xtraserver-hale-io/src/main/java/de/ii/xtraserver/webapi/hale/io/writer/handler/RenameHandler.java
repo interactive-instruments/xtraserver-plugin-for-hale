@@ -15,7 +15,6 @@
 
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
-import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
@@ -25,20 +24,11 @@ import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
-import eu.esdihumboldt.hale.common.align.model.ChildContext;
-import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.functions.RenameFunction;
-import eu.esdihumboldt.hale.common.schema.model.*;
-
-import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
-import javax.xml.namespace.QName;
-import java.sql.Array;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Transforms the {@link RenameFunction} to a {@link FeatureSchema}
@@ -58,12 +48,9 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
 
     ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
-    PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
-    TypeDefinition td = pd.getPropertyType();
-
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    String sourcePath = sourceProperty
-        .getDefinition().getDefinition().getDisplayName();
+    String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+        .getDefinition());
 
     setTypesAndSourcePaths(propertyBuilder, targetProperty, sourcePath);
 
@@ -114,7 +101,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
 
         if (fs.getSourcePath().isPresent() && fs.getSourcePaths().isEmpty()) {
 
-              /* We encountered another cell that applies to the same target property
+          /* We encountered another cell that applies to the same target property
               (with different source path). */
 
           // move current sourcePath to sourcePaths, then unset sourcePath

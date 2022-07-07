@@ -66,8 +66,8 @@ class CustomFunctionAdvToIdentifier extends FormattedStringHandler {
 		TypeDefinition td = pd.getPropertyType();
 
 		Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-		String sourcePath = sourceProperty
-				.getDefinition().getDefinition().getDisplayName();
+		String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+				.getDefinition());
 		propertyBuilder.sourcePath(sourcePath);
 
 		ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();

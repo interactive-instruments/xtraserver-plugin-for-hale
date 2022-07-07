@@ -30,13 +30,11 @@ import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -79,7 +77,6 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
     // check if the property has already been established
     // TODO - FUTURE WORK (multiplicity not supported yet)
     if (!propertyBuilder.build().getEffectiveSourcePaths().isEmpty()) {
-      String targetPropertyName = targetProperty.getDefinition().getDefinition().getDisplayName();
       mappingContext.getReporter().warn(
           "Multiple 'Regex Analysis'-relations for same target property ({0}) not supported yet. Only the first encountered relationship will be encoded. Ignoring regex {1}.",
           fullDisplayPath(targetProperty), regex);
@@ -127,8 +124,8 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
     }
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    String sourcePath = sourceProperty
-        .getDefinition().getDefinition().getDisplayName();
+    String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+        .getDefinition());
     propertyBuilder.sourcePath(sourcePath);
 
     ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();

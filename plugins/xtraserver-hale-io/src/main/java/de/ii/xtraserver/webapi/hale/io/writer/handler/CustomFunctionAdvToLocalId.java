@@ -25,7 +25,6 @@ import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
-import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.Optional;
@@ -52,7 +51,10 @@ class CustomFunctionAdvToLocalId extends FormattedStringHandler {
     ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    String sourcePath = propertyName(sourceProperty);
+    String sourcePropertyName = propertyName(sourceProperty);
+
+    String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+        .getDefinition());
     propertyBuilder.sourcePath(sourcePath);
 
     PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
@@ -73,15 +75,7 @@ class CustomFunctionAdvToLocalId extends FormattedStringHandler {
 
       propertyBuilder.role(Role.ID);
 
-      ImmutableFeatureSchema.Builder featureBuilder = this.mappingContext.getFeatureBuilder();
-      ImmutableFeatureSchema featureDraft = featureBuilder.build();
-      // TODO - currently we assume that sourcePath is set (could be different in the future)
-      if(featureDraft.getSourcePath().isPresent()) {
-        String featureSourcePath = featureDraft.getSourcePath().get();
-        // TODO - merge sourcePath conditions (e.g. if a filter already exists)?
-        featureSourcePath += "{sortKey=" + sourcePath + "}";
-        featureBuilder.sourcePath(featureSourcePath);
-      }
+      this.mappingContext.setMainSortKeyField(sourcePropertyName);
 
     } else {
 

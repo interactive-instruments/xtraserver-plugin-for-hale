@@ -24,13 +24,16 @@ import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformat
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
+import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.functions.FormattedStringFunction;
+import eu.esdihumboldt.hale.common.align.model.impl.PropertyEntityDefinition;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -68,7 +71,6 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
     final String pattern = patterns.get(0).as(String.class);
     final StringBuilder formattedStr = new StringBuilder(
         mappingContext.resolveProjectVars(pattern));
-    final int patternLength = formattedStr.length();
 
     ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
@@ -78,7 +80,6 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
     // check if the property has already been established
     // TODO - FUTURE WORK (multiplicity not supported yet)
     if (!propertyBuilder.build().getEffectiveSourcePaths().isEmpty()) {
-      String targetPropertyName = targetProperty.getDefinition().getDefinition().getDisplayName();
       mappingContext.getReporter().warn(
           "Multiple 'Formatted string'-relations for same target property ({0}) not supported yet. Only the first encountered relationship will be encoded. Ignoring pattern {1}.",
           fullDisplayPath(targetProperty), pattern);
@@ -88,18 +89,18 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
     if (propertyCell.getSource() != null && propertyCell.getSource().asMap().get("var") != null
         && !propertyCell.getSource().asMap().get("var").isEmpty()) {
 
-      final List<String> variables = propertyCell.getSource().asMap().get("var").stream()
+      Collection<? extends Entity> variableSources = propertyCell.getSource().asMap().get("var");
+      List<PropertyEntityDefinition> variableSourceEntities = variableSources.stream()
+          .map(var -> (PropertyEntityDefinition) var.getDefinition()).collect(
+              Collectors.toList());
+
+      final List<String> variables = variableSources.stream()
           .map(var -> propertyName(var.getDefinition().getPropertyPath()))
           .collect(Collectors.toList());
 
-      final List<int[]> startEndList = new ArrayList<int[]>();
-      final List<String> varList = new ArrayList<String>();
+      final List<String> varList = new ArrayList<>();
       final Matcher m = VARIABLE_PATTERN.matcher(formattedStr);
       while (m.find()) {
-        int[] startEnd = new int[2];
-        startEnd[0] = m.start(); // index of '{' character
-        startEnd[1] = m.end(); // index of '}' character
-        startEndList.add(startEnd);
         varList.add(m.group(1)); // the variable name, without curly
         // braces
       }
@@ -153,14 +154,16 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
                   "The pattern - {0} - does not match the expected format. Object reference was not created.",
               pattern);
         }
-
-
       }
 
       if (variables.size() == 1) {
-        propertyBuilder.sourcePath(variables.get(0));
+        String sourcePath = this.mappingContext.computeSourcePath(variableSourceEntities.get(0));
+        propertyBuilder.sourcePath(sourcePath);
       } else {
-        propertyBuilder.addAllSourcePaths(variables);
+        for (PropertyEntityDefinition ped : variableSourceEntities) {
+          String sourcePath = this.mappingContext.computeSourcePath(ped);
+          propertyBuilder.addSourcePaths(sourcePath);
+        }
       }
 
       ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();

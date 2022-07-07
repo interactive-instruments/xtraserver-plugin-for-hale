@@ -16,19 +16,12 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.collect.ListMultimap;
-import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
-import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraserver.hale.io.compatibility.XtraServerCompatibilityMode;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
-import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
-import eu.esdihumboldt.hale.common.schema.model.constraint.type.PrimaryKey;
-import eu.esdihumboldt.hale.io.xsd.constraint.XmlElements;
 import java.util.Collection;
-import java.util.Map;
-import javax.xml.namespace.QName;
 import org.geotools.filter.FilterFactoryImpl;
 import org.geotools.filter.visitor.DuplicatingFilterVisitor;
 import org.opengis.filter.FilterFactory2;
@@ -45,19 +38,19 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 		this.mappingContext = mappingContext;
 	}
 
-	protected String getPrimaryKey(final TypeDefinition definition) {
-		final PrimaryKey primaryKey = definition.getConstraint(PrimaryKey.class);
-		if (primaryKey == null || primaryKey.getPrimaryKeyPath() == null
-				|| primaryKey.getPrimaryKeyPath().isEmpty()) {
-			return null;
-		}
-		return primaryKey.getPrimaryKeyPath().iterator().next().getLocalPart();
-	}
+//	public String getPrimaryKey(final TypeDefinition definition) {
+//		final PrimaryKey primaryKey = definition.getConstraint(PrimaryKey.class);
+//		if (primaryKey == null || primaryKey.getPrimaryKeyPath() == null
+//				|| primaryKey.getPrimaryKeyPath().isEmpty()) {
+//			return null;
+//		}
+//		return primaryKey.getPrimaryKeyPath().iterator().next().getLocalPart();
+//	}
 
 	@Override
-	public final FeatureSchema.Builder handle(final Cell cell) {
+	public final ImmutableFeatureSchema.Builder handle(final Cell cell) {
 
-		mappingContext.addNextFeatureSchema(XtraServerMappingUtils.getFeatureTypeName(cell));
+		ImmutableFeatureSchema.Builder typeBuilder = mappingContext.addNextFeatureSchema(XtraServerMappingUtils.getFeatureTypeName(cell));
 
 		final ListMultimap<String, ? extends Entity> sourceEntities = cell.getSource();
 		if (sourceEntities == null || sourceEntities.size() == 0) {
@@ -75,9 +68,10 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 		}
 		final Entity targetType = targetEntities.values().iterator().next();
 		final Collection<? extends Entity> sourceTypes = sourceEntities.values();
+
 		doHandle(sourceTypes, targetType, cell);
 
-		return null;
+		return typeBuilder;
 	}
 
 	public abstract void doHandle(final Collection<? extends Entity> sourceTypes,

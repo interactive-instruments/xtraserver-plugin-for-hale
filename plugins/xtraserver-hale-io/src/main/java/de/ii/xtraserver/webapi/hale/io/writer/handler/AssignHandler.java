@@ -22,16 +22,13 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
-import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
-import de.interactive_instruments.xtraserver.config.api.Hints;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.functions.AssignFunction;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
-import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,6 +50,11 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
   @Override
   public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
       final Property targetProperty) {
+
+    if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
+      // TODO - FUTURE WORK (especially the case of of Assign (Bound) with additional Assign as fallback -> choice)
+      return Optional.empty();
+    }
 
     // Assign constant value from parameters
     final ListMultimap<String, ParameterValue> parameters = propertyCell
@@ -83,10 +85,6 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
       propertyBuilder.valueType(baseType);
     } else {
       propertyBuilder.type(baseType);
-    }
-
-    if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
-      // TODO - FUTURE WORK
     }
 
     return Optional.of(propertyBuilder);

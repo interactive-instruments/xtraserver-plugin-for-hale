@@ -18,14 +18,9 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
-import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
-import eu.esdihumboldt.hale.common.core.io.Value;
-import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
-import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.Optional;
 
 /**
@@ -55,7 +50,8 @@ class CustomFunctionAdvToGeographicalNameSimple extends FormattedStringHandler {
 		typeBuilder.getPropertyMap().put(pName,propertyBuilder);
 
 		Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-		String sourcePath = propertyName(sourceProperty);
+		String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+				.getDefinition());
 		propertyBuilder.sourcePath(sourcePath);
 
 		propertyBuilder.type(SchemaBase.Type.STRING);

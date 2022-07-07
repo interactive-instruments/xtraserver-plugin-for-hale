@@ -27,12 +27,14 @@ import de.ii.xtraserver.webapi.hale.io.writer.handler.TypeTransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.handler.TypeTransformationHandlerFactory;
 import eu.esdihumboldt.hale.common.align.model.Alignment;
 import eu.esdihumboldt.hale.common.align.model.Cell;
+import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
 import eu.esdihumboldt.hale.common.core.io.ProgressIndicator;
 import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
+import eu.esdihumboldt.hale.common.filter.AbstractGeotoolsFilter;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
-
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,9 +43,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
+import org.opengis.filter.Filter;
 
 /**
  * Translates an Alignment to a XtraServer Web API Mapping.
@@ -96,7 +100,6 @@ public class XtraServerWebApiMappingGenerator {
    *
    * @param reporter   status reporter
    * @param providerId
-   * @return the generated XtraServer Mapping
    * @throws UnsupportedTransformationException if the transformation of types or properties is not
    *                                            supported
    */
@@ -126,9 +129,12 @@ public class XtraServerWebApiMappingGenerator {
 
         } else {
 
-          typeHandler.handle(typeCell);
+          // PROCESSING
+
+          ImmutableFeatureSchema.Builder typeBuilder = typeHandler.handle(typeCell);
           this.progress.setCurrentTask(
               "Mapping values for Feature Type " + mappingContext.getFeatureTypeName());
+
           // Add MappingValues from the type cell's property cells
           for (final Cell propertyCell : this.alignment.getPropertyCells(typeCell)
               .stream()
@@ -144,6 +150,35 @@ public class XtraServerWebApiMappingGenerator {
             }
             this.progress.advance(1);
           }
+
+          // POSTPROCESSING
+
+          if(typeBuilder != null) {
+            EntityDefinition mainEntityDefinition = this.mappingContext.getMainEntityDefinition();
+            TypeDefinition mainTypeDefinition = mainEntityDefinition.getType();
+            String mainTableName = mainTypeDefinition.getName().getLocalPart();
+            String sourcePath = "/" + mainTableName;
+
+            // primary key is currently not used
+//            String primaryKey = TypeTransformationHandler.getPrimaryKey(mainTypeDefinition);
+//            if(StringUtils.isNotBlank(primaryKey)) {
+//              sourcePath += "{primaryKey="+primaryKey+"}";
+//            }
+            if(this.mappingContext.getMainSortKeyField() != null) {
+              sourcePath += "{sortKey="+this.mappingContext.getMainSortKeyField()+"}";
+            }
+            if (mainEntityDefinition.getFilter() != null) {
+              try {
+                AbstractGeotoolsFilter filter = (AbstractGeotoolsFilter) mainEntityDefinition.getFilter();
+                Filter qualifiedFilter = ECQL.toFilter(filter.getFilterTerm());
+                sourcePath += "{filter=" + ECQL.toCQL(qualifiedFilter)+"}";
+              } catch (ClassCastException | CQLException e) {
+                // ignore
+              }
+            }
+
+            typeBuilder.sourcePath(sourcePath);
+          }
         }
       } else {
         this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
@@ -153,14 +188,14 @@ public class XtraServerWebApiMappingGenerator {
     ldproxyCfg.writeEntity(mappingContext.getProviderData(providerId), out);
   }
 
-  /**
-   * Return all property paths for which no association target could be found in the schema.
-   *
-   * @return list of properties with missing association targets
-   */
-  public Set<String> getMissingAssociationTargets() {
-    return this.mappingContext.getMissingAssociationTargets();
-  }
+//  /**
+//   * Return all property paths for which no association target could be found in the schema.
+//   *
+//   * @return list of properties with missing association targets
+//   */
+//  public Set<String> getMissingAssociationTargets() {
+//    return this.mappingContext.getMissingAssociationTargets();
+//  }
 
   private Path createTempDataDir() throws IOException {
     Path dataDir = Files.createTempDirectory("ldproxy-cfg");

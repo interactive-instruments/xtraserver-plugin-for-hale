@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2017 interactive instruments GmbH
- * 
+ *
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this distribution. If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Contributors:
  *     interactive instruments GmbH <http://www.interactive-instruments.de>
  */
@@ -21,8 +21,6 @@ import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
 import eu.esdihumboldt.hale.common.align.model.functions.RetypeFunction;
-import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
-
 import java.util.Collection;
 
 /**
@@ -30,26 +28,25 @@ import java.util.Collection;
  */
 class RetypeHandler extends AbstractTypeTransformationHandler {
 
-	RetypeHandler(final MappingContext mappingContext) {
-		super(mappingContext);
-	}
+  RetypeHandler(final MappingContext mappingContext) {
+    super(mappingContext);
+  }
 
-	/**
-	 * @see TypeTransformationHandler#handle(Cell)
-	 */
-	@Override
-	public void doHandle(final Collection<? extends Entity> sourceTypes, final Entity targetType,
-			final Cell typeCell) {
+  /**
+   * @see TypeTransformationHandler#handle(Cell)
+   */
+  @Override
+  public void doHandle(final Collection<? extends Entity> sourceTypes, final Entity targetType,
+      final Cell typeCell) {
 
-		EntityDefinition sourceType = sourceTypes.iterator().next().getDefinition();
-		final TypeDefinition sourceTypeDefinition = sourceType.getType();
-		final String tableName = sourceTypeDefinition.getDisplayName();
+    EntityDefinition sourceType = sourceTypes.iterator().next().getDefinition();
 
-		ImmutableFeatureSchema.Builder builder = mappingContext.getFeatureBuilder();
+    ImmutableFeatureSchema.Builder builder = mappingContext.getFeatureBuilder();
 
-		builder.sourcePath("/" + tableName);
+    this.mappingContext.setMainEntityDefinition(sourceType);
+
 //		TODO: extract label and description from XSD - see issue #14
-		builder.label(mappingContext.getFeatureTypeName());
-	}
-
+    // TODO: common initialisation of label and description for all type handlers?
+    builder.label(mappingContext.getFeatureTypeName());
+  }
 }
