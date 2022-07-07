@@ -22,7 +22,7 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
-import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
@@ -177,7 +177,7 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
       propertyBuilder.constantValue(formattedStr.toString());
     }
 
-    SchemaBase.Type baseType = XtraServerWebApiTypeUtil.getWebApiType(td,
+    SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
         this.mappingContext.getReporter());
     if (isMultiValuedPropertyPerSchemaDefinition(pd)) {
       propertyBuilder.type(Type.VALUE_ARRAY);

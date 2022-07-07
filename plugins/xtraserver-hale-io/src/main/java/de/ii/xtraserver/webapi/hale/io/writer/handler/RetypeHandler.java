@@ -44,9 +44,5 @@ class RetypeHandler extends AbstractTypeTransformationHandler {
     ImmutableFeatureSchema.Builder builder = mappingContext.getFeatureBuilder();
 
     this.mappingContext.setMainEntityDefinition(sourceType);
-
-//		TODO: extract label and description from XSD - see issue #14
-    // TODO: common initialisation of label and description for all type handlers?
-    builder.label(mappingContext.getFeatureTypeName());
   }
 }

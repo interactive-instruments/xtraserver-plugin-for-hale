@@ -22,7 +22,7 @@ import de.ii.xtraplatform.features.domain.SchemaBase.Role;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
-import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
@@ -60,7 +60,7 @@ class CustomFunctionAdvToLocalId extends FormattedStringHandler {
     PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
     TypeDefinition td = pd.getPropertyType();
 
-    SchemaBase.Type baseType = XtraServerWebApiTypeUtil.getWebApiType(td,
+    SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
         this.mappingContext.getReporter());
     if (isMultiValuedPropertyPerSchemaDefinition(pd)) {
       propertyBuilder.type(Type.VALUE_ARRAY);

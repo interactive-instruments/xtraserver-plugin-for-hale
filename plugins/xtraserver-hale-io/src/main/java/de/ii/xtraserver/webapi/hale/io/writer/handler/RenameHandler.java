@@ -22,7 +22,7 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
-import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.functions.RenameFunction;
@@ -74,7 +74,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
 
     PropertyDefinition targetPd = getLastPropertyDefinition(targetProperty);
     TypeDefinition td = targetPd.getPropertyType();
-    SchemaBase.Type baseType = XtraServerWebApiTypeUtil.getWebApiType(td,
+    SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
         this.mappingContext.getReporter());
 
     // build the current schema structure for inspection

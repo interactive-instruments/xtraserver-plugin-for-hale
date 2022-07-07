@@ -16,21 +16,18 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.collect.ListMultimap;
-import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.CellParentWrapper;
-import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.ChildContext;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.schema.model.ChildDefinition;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
-import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
@@ -40,9 +37,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.xml.namespace.QName;
 import org.apache.ws.commons.schema.XmlSchemaAppInfo;
 import org.w3c.dom.Node;
 
@@ -234,6 +229,11 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     Map<String, Builder> propMap = typeBuilder.getPropertyMap();
     ImmutableFeatureSchema.Builder propertyBuilder = null;
 
+    // keep track of real property path, to be used as variable name in label and description
+    StringBuilder propertyPathTracker = new StringBuilder();
+    propertyPathTracker.append(this.mappingContext.getFeatureTypeName().toLowerCase(Locale.ENGLISH))
+        .append(".");
+
     for (int i = 0; i < propertyPath.size(); i++) {
 
       ChildDefinition cd = propertyPath.get(i).getChild();
@@ -249,6 +249,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
       } else {
 
+        propertyPathTracker.append(pName.toLowerCase(Locale.ENGLISH)).append(".");
+
         if (propMap.containsKey(pName)) {
           propertyBuilder = propMap.get(pName);
         } else {
@@ -256,6 +258,11 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
           propMap.put(pName, propertyBuilder);
 
           propertyBuilder.name(pName);
+
+          String label = labelValue(pd, propertyPathTracker.toString());
+          propertyBuilder.label(label);
+          String description = descriptionValue(pd, propertyPathTracker.toString());
+          propertyBuilder.description(description);
 
           if (i < propertyPath.size() - 1) {
 
@@ -283,6 +290,44 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     }
 
     return propertyBuilder;
+  }
+
+  /**
+   * @param pd           definition of a property (not representing an object type) that is in the
+   *                     path of a property-relation target property
+   * @param propertyPath path up to and including the given property, separated and ending with '.'
+   * @return the value to use for the label within the provider configuration
+   */
+  private String labelValue(PropertyDefinition pd, String propertyPath) {
+
+    Map<String, String> documentationFacets = XtraServerWebApiUtil.parseDescription(
+        pd.getDescription());
+
+    String result = "${" + propertyPath + "label:-";
+    result += documentationFacets.getOrDefault("name", pd.getName().getLocalPart());
+    result += "}";
+
+    return result;
+  }
+
+  /**
+   * @param pd           definition of a property (not representing an object type) that is in the
+   *                     path of a property-relation target property
+   * @param propertyPath path up to and including the given property, separated and ending with '.'
+   * @return the value to use for the description within the provider configuration
+   */
+  private String descriptionValue(PropertyDefinition pd, String propertyPath) {
+
+    Map<String, String> documentationFacets = XtraServerWebApiUtil.parseDescription(
+        pd.getDescription());
+
+    String result = "${" + propertyPath + "description:-";
+    if (documentationFacets.containsKey("definition")) {
+      result += documentationFacets.get("definition");
+    }
+    result += "}";
+
+    return result;
   }
 
   /**

@@ -19,9 +19,13 @@ import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraserver.hale.io.compatibility.XtraServerCompatibilityMode;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import java.util.Collection;
+import java.util.Locale;
+import java.util.Map;
+import javax.xml.namespace.QName;
 import org.geotools.filter.FilterFactoryImpl;
 import org.geotools.filter.visitor.DuplicatingFilterVisitor;
 import org.opengis.filter.FilterFactory2;
@@ -50,7 +54,8 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 	@Override
 	public final ImmutableFeatureSchema.Builder handle(final Cell cell) {
 
-		ImmutableFeatureSchema.Builder typeBuilder = mappingContext.addNextFeatureSchema(XtraServerMappingUtils.getFeatureTypeName(cell));
+		QName featureTypeName = XtraServerMappingUtils.getFeatureTypeName(cell);
+		ImmutableFeatureSchema.Builder typeBuilder = mappingContext.addNextFeatureSchema(featureTypeName);
 
 		final ListMultimap<String, ? extends Entity> sourceEntities = cell.getSource();
 		if (sourceEntities == null || sourceEntities.size() == 0) {
@@ -71,7 +76,47 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 
 		doHandle(sourceTypes, targetType, cell);
 
+		String schemaDescription = targetType.getDefinition().getType().getDescription();
+		String label = labelValue(schemaDescription, featureTypeName.getLocalPart());
+		typeBuilder.label(label);
+		String description = descriptionValue(schemaDescription, featureTypeName.getLocalPart());
+		typeBuilder.description(description);
+
 		return typeBuilder;
+	}
+
+	/**
+	 * @param schemaDescription documentation as defined in the (target) type schema
+	 * @param schemaTypeName name of the XML element that represents the (target) type
+	 * @return the value to use for the label within the provider configuration
+	 */
+	private String labelValue(String schemaDescription, String schemaTypeName) {
+
+		Map<String, String> documentationFacets = XtraServerWebApiUtil.parseDescription(schemaDescription);
+
+		String result = "${"+schemaTypeName.toLowerCase(Locale.ENGLISH)+".label:-";
+		result += documentationFacets.getOrDefault("name", schemaTypeName);
+		result += "}";
+
+		return result;
+	}
+
+	/**
+	 * @param schemaDescription documentation as defined in the (target) type schema
+	 * @param schemaTypeName name of the XML element that represents the (target) type
+	 * @return the value to use for the label within the provider configuration
+	 */
+	private String descriptionValue(String schemaDescription, String schemaTypeName) {
+
+		Map<String, String> documentationFacets = XtraServerWebApiUtil.parseDescription(schemaDescription);
+
+		String result = "${"+schemaTypeName.toLowerCase(Locale.ENGLISH)+".description:-";
+		if(documentationFacets.containsKey("definition")) {
+			result += documentationFacets.get("definition");
+		}
+		result += "}";
+
+		return result;
 	}
 
 	public abstract void doHandle(final Collection<? extends Entity> sourceTypes,

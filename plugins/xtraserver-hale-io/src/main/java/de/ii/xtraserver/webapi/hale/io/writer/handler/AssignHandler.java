@@ -23,7 +23,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
-import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiTypeUtil;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
@@ -78,7 +78,7 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
 
     propertyBuilder.constantValue(value);
 
-    SchemaBase.Type baseType = XtraServerWebApiTypeUtil.getWebApiType(pdTgtLast.getPropertyType(),
+    SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(pdTgtLast.getPropertyType(),
         this.mappingContext.getReporter());
     if (isMultiValuedPropertyPerSchemaDefinition(pdTgtLast)) {
       propertyBuilder.type(Type.VALUE_ARRAY);

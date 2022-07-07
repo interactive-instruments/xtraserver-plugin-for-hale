@@ -20,14 +20,18 @@ import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.xml.namespace.QName;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * TBD
  */
-public class XtraServerWebApiTypeUtil {
+public class XtraServerWebApiUtil {
 
     public static final String GML_NS_URI_PREFIX = "http://www.opengis.net/gml/";
 
@@ -103,5 +107,28 @@ public class XtraServerWebApiTypeUtil {
                 return SchemaBase.Type.STRING;
             }
         }
+    }
+
+    /**
+     * Parses a schema description, using separators defined for INSPIRE documentation items.
+     *
+     * @param description description as defined by the schema
+     * @return map (can be empty but not null) with key: documentation facet identifier, in lower case
+     * (e.g. 'name', 'definition', 'description'); value: the according documentation facet
+     */
+    public static Map<String, String> parseDescription(String description) {
+
+        Map<String, String> result = new HashMap<>();
+
+        if (StringUtils.isNotBlank(description)) {
+            String separatorRegex = "\\s*--\\s*(\\w+)\\s*--\\s*(.+)(?!--)";
+            Pattern inspireDocFacetPattern = Pattern.compile(separatorRegex);
+            Matcher m = inspireDocFacetPattern.matcher(description.trim());
+            while (m.find()) {
+                result.put(m.group(1).toLowerCase(Locale.ENGLISH),m.group(2).trim());
+            }
+        }
+
+        return result;
     }
 }
