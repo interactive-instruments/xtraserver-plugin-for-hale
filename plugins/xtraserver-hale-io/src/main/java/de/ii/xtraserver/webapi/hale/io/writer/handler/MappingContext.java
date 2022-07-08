@@ -22,7 +22,6 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql.Dialect;
-import de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
 import de.interactive_instruments.xtraserver.config.api.XtraServerMappingBuilder;
 import eu.esdihumboldt.hale.common.align.model.Alignment;
@@ -34,12 +33,17 @@ import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
-
-import javax.xml.namespace.QName;
 import java.net.URI;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.namespace.QName;
 
 /**
  * The mapping context provides access to the {@link Alignment} and holds all {@link
@@ -53,7 +57,7 @@ public final class MappingContext {
 
   private final Alignment alignment;
   private final Map<String, Value> transformationProperties;
-  private static final Pattern projectVarPattern = Pattern.compile("\\{\\{project:([^}]+)\\}\\}");
+  private static final Pattern projectVarPattern = Pattern.compile("\\{\\{project:([^}]+)}}");
 
   /**
    * Stores the feature schema builders generated while processing the alignment
@@ -121,6 +125,10 @@ public final class MappingContext {
 
   public EntityDefinition getMainEntityDefinition() {
     return this.currentMainEntityDefinition;
+  }
+
+  public String getMainTableName() {
+    return this.currentMainTableName;
   }
 
   public void setMainSortKeyField(String sortKey) {
@@ -307,7 +315,7 @@ public final class MappingContext {
       }
       repStr =
           repStr.replaceAll(
-              "\\{\\{project:" + varName + "\\}\\}", Matcher.quoteReplacement(replacement));
+              "\\{\\{project:" + varName + "}}", Matcher.quoteReplacement(replacement));
     }
     return repStr;
   }
@@ -335,5 +343,9 @@ public final class MappingContext {
     }
 
     return result;
+  }
+
+  public LdproxyCfg getLdproxyCfg() {
+    return this.ldproxyCfg;
   }
 }

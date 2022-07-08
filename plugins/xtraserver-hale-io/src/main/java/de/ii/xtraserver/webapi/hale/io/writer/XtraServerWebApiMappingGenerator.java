@@ -153,7 +153,7 @@ public class XtraServerWebApiMappingGenerator {
 
           // POSTPROCESSING
 
-          if(typeBuilder != null) {
+          if (typeBuilder != null) {
             EntityDefinition mainEntityDefinition = this.mappingContext.getMainEntityDefinition();
             TypeDefinition mainTypeDefinition = mainEntityDefinition.getType();
             String mainTableName = mainTypeDefinition.getName().getLocalPart();
@@ -164,14 +164,14 @@ public class XtraServerWebApiMappingGenerator {
 //            if(StringUtils.isNotBlank(primaryKey)) {
 //              sourcePath += "{primaryKey="+primaryKey+"}";
 //            }
-            if(this.mappingContext.getMainSortKeyField() != null) {
-              sourcePath += "{sortKey="+this.mappingContext.getMainSortKeyField()+"}";
+            if (this.mappingContext.getMainSortKeyField() != null) {
+              sourcePath += "{sortKey=" + this.mappingContext.getMainSortKeyField() + "}";
             }
             if (mainEntityDefinition.getFilter() != null) {
               try {
                 AbstractGeotoolsFilter filter = (AbstractGeotoolsFilter) mainEntityDefinition.getFilter();
                 Filter qualifiedFilter = ECQL.toFilter(filter.getFilterTerm());
-                sourcePath += "{filter=" + ECQL.toCQL(qualifiedFilter)+"}";
+                sourcePath += "{filter=" + ECQL.toCQL(qualifiedFilter) + "}";
               } catch (ClassCastException | CQLException e) {
                 // ignore
               }
@@ -184,6 +184,8 @@ public class XtraServerWebApiMappingGenerator {
         this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
       }
     }
+
+    // TODO write codelist entities that will be stored in the mapping context
 
     ldproxyCfg.writeEntity(mappingContext.getProviderData(providerId), out);
   }
