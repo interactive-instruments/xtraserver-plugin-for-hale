@@ -259,10 +259,14 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
           propertyBuilder.name(pName);
 
-          String label = labelValue(pd, propertyPathTracker.toString());
-          propertyBuilder.label(label);
-          String description = descriptionValue(pd, propertyPathTracker.toString());
-          propertyBuilder.description(description);
+          // TODO - ignore this for other XML attributes as well, e.g. @codeList and @codeListValue? ... more exceptions (e.g. id-element?
+          if (!(pd.getName().toString().equals("{http://www.w3.org/1999/xlink}title")
+              || pd.getName().toString().equals("{http://www.w3.org/1999/xlink}href"))) {
+            String label = labelValue(pd, propertyPathTracker.toString());
+            propertyBuilder.label(label);
+            String description = descriptionValue(pd, propertyPathTracker.toString());
+            propertyBuilder.description(description);
+          }
 
           if (i < propertyPath.size() - 1) {
 

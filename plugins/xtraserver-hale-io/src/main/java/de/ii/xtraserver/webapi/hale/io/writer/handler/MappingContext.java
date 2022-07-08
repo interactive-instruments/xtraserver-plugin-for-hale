@@ -21,6 +21,8 @@ import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql.Dialect;
+import de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
 import de.interactive_instruments.xtraserver.config.api.XtraServerMappingBuilder;
 import eu.esdihumboldt.hale.common.align.model.Alignment;
@@ -269,6 +271,12 @@ public final class MappingContext {
 
     ImmutableFeatureProviderSqlData.Builder providerData = ldproxyCfg.builder().entity().provider()
         .id(id);
+
+    providerData
+        .connectionInfoBuilder()
+        .dialect(Dialect.PGIS).database("${DB_CONN_DIALECT}").host("${DB_CONN_HOST}")
+        .user("${DB_CONN_USER}")
+        .password("${DB_CONN_PWD_BASE64}");
 
     featureTypeMappings.values().stream()
         .map(ImmutableFeatureSchema.Builder::build)
