@@ -29,6 +29,7 @@ import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.functions.AssignFunction;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.List;
 import java.util.Optional;
 
@@ -70,6 +71,16 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     // TODO - check that codeSpace is an XML attribute (like for nilReason)?
     if (lastTgtPropName.equals("codeSpace") && value.equals("http://inspire.ec.europa.eu/ids")) {
 //			mappingContext.getReporter().info("Ignoring Assign relationship for target property 'codeSpace' with value 'http://inspire.ec.europa.eu/ids'.");
+      return Optional.empty();
+    }
+
+    // handle cases of ISO 19139 encoded, code list valued property elements
+    TypeDefinition tgtLastTypeDef = pdTgtLast.getPropertyType();
+    if(tgtLastTypeDef.getName().toString().equalsIgnoreCase("{http://www.isotc211.org/2005/gco}CodeListValue_Type")) {
+      // The textual value of an ISO 19139 encoded, code list valued property element.
+      // In AdV-INSPIRE-alignments typically a copy of the value for @codeListValue.
+      // We ignore this property relation. If we did not, the type of the property that will
+      // itself have properties (codeList and codeListValue) would be changed from OBJECT to STRING.
       return Optional.empty();
     }
 

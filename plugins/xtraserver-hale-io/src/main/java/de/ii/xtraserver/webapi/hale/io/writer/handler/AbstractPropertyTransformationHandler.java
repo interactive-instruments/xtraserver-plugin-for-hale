@@ -19,6 +19,7 @@ import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Role;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.CellParentWrapper;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
@@ -259,13 +260,25 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
           propertyBuilder.name(pName);
 
-          // TODO - ignore this for other XML attributes as well, e.g. @codeList and @codeListValue? ... more exceptions (e.g. id-element?
+          /* In the future, we could ignore setting label and description for other schema
+          elements as well, e.g. XML attributes @codeList and @codeListValue.*/
           if (!(pd.getName().toString().equals("{http://www.w3.org/1999/xlink}title")
               || pd.getName().toString().equals("{http://www.w3.org/1999/xlink}href"))) {
             String label = labelValue(pd, propertyPathTracker.toString());
             propertyBuilder.label(label);
             String description = descriptionValue(pd, propertyPathTracker.toString());
             propertyBuilder.description(description);
+          }
+
+          /*
+           * In the future, setting PRIMARY temporal properties may be done using explicit
+           * flags contained in mapping notes.
+           */
+          if(pName.equalsIgnoreCase("beginLifespanVersion")) {
+            propertyBuilder.role(Role.PRIMARY_INTERVAL_START);
+          }
+          if(pName.equalsIgnoreCase("endLifespanVersion")) {
+            propertyBuilder.role(Role.PRIMARY_INTERVAL_END);
           }
 
           if (i < propertyPath.size() - 1) {
