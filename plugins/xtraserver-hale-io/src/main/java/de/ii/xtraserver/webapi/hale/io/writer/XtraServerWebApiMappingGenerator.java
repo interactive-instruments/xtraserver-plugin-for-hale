@@ -16,6 +16,9 @@
 package de.ii.xtraserver.webapi.hale.io.writer;
 
 import de.ii.ldproxy.cfg.LdproxyCfg;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.xtraplatform.codelists.domain.CodelistData;
+import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.CellParentWrapper;
@@ -41,7 +44,9 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
@@ -103,7 +108,7 @@ public class XtraServerWebApiMappingGenerator {
    * @throws UnsupportedTransformationException if the transformation of types or properties is not
    *                                            supported
    */
-  public void generate(final IOReporter reporter, final OutputStream out, String providerId)
+  public void generate(final IOReporter reporter, final OutputStream out, String providerId, boolean onlyProviderFile)
       throws UnsupportedTransformationException, IOException {
 
     for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
@@ -185,9 +190,23 @@ public class XtraServerWebApiMappingGenerator {
       }
     }
 
-    // TODO write codelist entities that will be stored in the mapping context
+    FeatureProviderDataV2 providerData = mappingContext.getProviderData(providerId);
 
-    ldproxyCfg.writeEntity(mappingContext.getProviderData(providerId), out);
+    if (onlyProviderFile) {
+      ldproxyCfg.writeEntity(providerData, out);
+    } else {
+      ldproxyCfg.addEntity(providerData);
+      // TODO generate api data with default values, iterate over providerData.getTypes() for collections
+      OgcApiDataV2 apiData;
+      //ldproxyCfg.addEntity(apiData);
+      // TODO write codelist entities that will be stored in the mapping context
+      List<CodelistData> codelists= new ArrayList<>();
+      for (CodelistData codelist : codelists) {
+        ldproxyCfg.addEntity(codelist);
+      }
+
+      ldproxyCfg.writeZippedStore(out);
+    }
   }
 
 //  /**
