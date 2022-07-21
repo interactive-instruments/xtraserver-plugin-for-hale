@@ -294,10 +294,6 @@ public final class MappingContext {
     ImmutableFeatureProviderSqlData.Builder providerData = ldproxyCfg.builder().entity().provider()
         .id(id);
 
-    ImmutableEpsgCrs.Builder crsBuilder = providerData.nativeCrsBuilder();
-    crsBuilder.code(1);
-    providerData.nativeCrs(crsBuilder.build());
-
     providerData
         .connectionInfoBuilder()
         .dialect(Dialect.PGIS).database("${DB_CONN_DIALECT}").host("${DB_CONN_HOST}")

@@ -50,7 +50,7 @@ class CustomFunctionAdvToGeographicalNameSimple extends FormattedStringHandler {
     String pName = "name_deu";
     propertyBuilder.name(pName);
     String documentationVariableFacetPrefix = "${" + featureTypeNameLowerCase + "." + pName;
-    propertyBuilder.label(documentationVariableFacetPrefix + ".label:-}");
+    propertyBuilder.label(documentationVariableFacetPrefix + ".label:-name_deu}");
     propertyBuilder.description(documentationVariableFacetPrefix + ".description:-}");
     typeBuilder.getPropertyMap().put(pName, propertyBuilder);
 

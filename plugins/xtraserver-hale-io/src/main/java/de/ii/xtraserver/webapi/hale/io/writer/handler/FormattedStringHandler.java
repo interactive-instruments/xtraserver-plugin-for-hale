@@ -116,8 +116,16 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
 
       String resultingString = formattedStr.toString();
       for (String var : varList) {
+
+        String varReplacementValue = var;
+        if(varList.size() == 1) {
+          // then the source property name does not work, 'value' or the target property name works
+          // TODO - FUTURE WORK - MULTIPLICITY - Do we need to change the behavior in case of multiple Property-Relations?
+          varReplacementValue = "value";
+        }
+
         resultingString = resultingString.replaceAll("\\{" + var + "\\}",
-            "\\{\\{" + var + "\\}\\}");
+            "\\{\\{" + varReplacementValue + "\\}\\}");
       }
 
       boolean isObjectReference = false;
