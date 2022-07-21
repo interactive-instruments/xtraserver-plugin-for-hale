@@ -17,6 +17,9 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
+import de.ii.ldproxy.cfg.LdproxyCfg;
+import de.ii.xtraplatform.codelists.domain.CodelistData.ImportType;
+import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -126,13 +129,13 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
 
       String codelistLabel = codelistId.replaceAll("[.-]", " ");
 
-      System.out.println("---");
-      System.out.println("id: " + codelistId);
-      System.out.println("label: " + codelistLabel);
-      System.out.println("sourceType: TEMPLATES");
-      System.out.println("entries:");
-      codeMappings.forEach((key, value) -> System.out.println("   " + key + ": " + value));
-      fallbackValue.ifPresent(s -> System.out.println("fallback: " + s));
+//      System.out.println("---");
+//      System.out.println("id: " + codelistId);
+//      System.out.println("label: " + codelistLabel);
+//      System.out.println("sourceType: TEMPLATES");
+//      System.out.println("entries:");
+//      codeMappings.forEach((key, value) -> System.out.println("   " + key + ": " + value));
+//      fallbackValue.ifPresent(s -> System.out.println("fallback: " + s));
 
       ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
@@ -157,10 +160,15 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
         propertyBuilder.type(baseType);
       }
 
-      // TODO create actual codelist entity with ldproxyCfg
-//      LdproxyCfg ldproxyCfg = mappingContext.getLdproxyCfg();
+      // create actual codelist entity with ldproxyCfg
+      LdproxyCfg ldproxyCfg = mappingContext.getLdproxyCfg();
+      ImmutableCodelistData.Builder clBuilder = ldproxyCfg.builder().entity().codelist();
+      clBuilder.id(codelistId).label(codelistLabel).sourceType(ImportType.TEMPLATES);
+      clBuilder.entries(codeMappings);
+      clBuilder.fallback(fallbackValue);
 
-      // TODO add codelist entity to mapping context, and have them written at the end of the generation process
+      // add codelist entity to mapping context
+      this.mappingContext.addCodeList(clBuilder.build());
 
       return Optional.of(propertyBuilder);
     }

@@ -52,7 +52,12 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
   public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
       final Property targetProperty) {
 
-    if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)) {
+    PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
+    String lastTgtPropName = pdTgtLast.getName().getLocalPart();
+    TypeDefinition tgtLastTypeDef = pdTgtLast.getPropertyType();
+
+    if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)
+        && !isGmlUomProperty(pdTgtLast)) {
       // TODO - FUTURE WORK (especially the case of of Assign (Bound) with additional Assign as fallback -> choice)
       return Optional.empty();
     }
@@ -66,8 +71,6 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     /*
      * Check if the assignment is a case to generally be ignored.
      */
-    PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
-    String lastTgtPropName = pdTgtLast.getName().getLocalPart();
     // TODO - check that codeSpace is an XML attribute (like for nilReason)?
     if (lastTgtPropName.equals("codeSpace") && value.equals("http://inspire.ec.europa.eu/ids")) {
 //			mappingContext.getReporter().info("Ignoring Assign relationship for target property 'codeSpace' with value 'http://inspire.ec.europa.eu/ids'.");
@@ -75,8 +78,8 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     }
 
     // handle cases of ISO 19139 encoded, code list valued property elements
-    TypeDefinition tgtLastTypeDef = pdTgtLast.getPropertyType();
-    if(tgtLastTypeDef.getName().toString().equalsIgnoreCase("{http://www.isotc211.org/2005/gco}CodeListValue_Type")) {
+    if (tgtLastTypeDef.getName().toString()
+        .equalsIgnoreCase("{http://www.isotc211.org/2005/gco}CodeListValue_Type")) {
       // The textual value of an ISO 19139 encoded, code list valued property element.
       // In AdV-INSPIRE-alignments typically a copy of the value for @codeListValue.
       // We ignore this property relation. If we did not, the type of the property that will
@@ -84,18 +87,25 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
       return Optional.empty();
     }
 
-    // property creation only after ignore-check (see above):
+    // property creation only after ignore-checks (see above):
     ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
 
-    propertyBuilder.constantValue(value);
+    if (isGmlUomProperty(pdTgtLast)) {
 
-    SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(pdTgtLast.getPropertyType(),
-        this.mappingContext.getReporter());
-    if (isMultiValuedPropertyPerSchemaDefinition(pdTgtLast)) {
-      propertyBuilder.type(Type.VALUE_ARRAY);
-      propertyBuilder.valueType(baseType);
+      propertyBuilder.unit(value);
+
     } else {
-      propertyBuilder.type(baseType);
+
+      propertyBuilder.constantValue(value);
+
+      SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(pdTgtLast.getPropertyType(),
+          this.mappingContext.getReporter());
+      if (isMultiValuedPropertyPerSchemaDefinition(pdTgtLast)) {
+        propertyBuilder.type(Type.VALUE_ARRAY);
+        propertyBuilder.valueType(baseType);
+      } else {
+        propertyBuilder.type(baseType);
+      }
     }
 
     return Optional.of(propertyBuilder);

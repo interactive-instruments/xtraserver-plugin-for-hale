@@ -29,6 +29,7 @@ import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.schema.model.ChildDefinition;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
@@ -248,6 +249,14 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
         propertyBuilder.objectType(pName);
 
+      } else if (isGmlUomProperty(pd) && i == propertyPath.size() - 1) {
+
+        // ignore this property when building the path
+        // return the builder for the second-to-last property instead
+        // the current propertyBuilder (i.e. from the previous loop) represents that property (one before 'uom')
+        // it can be used to assign the unit
+        return propertyBuilder;
+
       } else {
 
         propertyPathTracker.append(pName.toLowerCase(Locale.ENGLISH)).append(".");
@@ -274,10 +283,10 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
            * In the future, setting PRIMARY temporal properties may be done using explicit
            * flags contained in mapping notes.
            */
-          if(pName.equalsIgnoreCase("beginLifespanVersion")) {
+          if (pName.equalsIgnoreCase("beginLifespanVersion")) {
             propertyBuilder.role(Role.PRIMARY_INTERVAL_START);
           }
-          if(pName.equalsIgnoreCase("endLifespanVersion")) {
+          if (pName.equalsIgnoreCase("endLifespanVersion")) {
             propertyBuilder.role(Role.PRIMARY_INTERVAL_END);
           }
 
@@ -385,6 +394,15 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   protected boolean isMultiValuedPropertyPerSchemaDefinition(PropertyDefinition targetPd) {
     Cardinality card = targetPd.getConstraint(Cardinality.class);
     return card != null && card.getMaxOccurs() != 1;
+  }
+
+  protected boolean isGmlUomProperty(PropertyDefinition pd) {
+
+    String propName = pd.getName().getLocalPart();
+    TypeDefinition pdTypeDef = pd.getPropertyType();
+
+    return propName.equals("uom")
+        && pdTypeDef.getName().toString().equals("{http://www.opengis.net/gml/3.2}UomIdentifier");
   }
 }
 

@@ -16,10 +16,21 @@
 package de.ii.xtraserver.webapi.hale.io.writer;
 
 import de.ii.ldproxy.cfg.LdproxyCfg;
+import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration.NESTED_OBJECTS;
+import de.ii.ogcapi.features.geojson.domain.ImmutableGeoJsonConfiguration;
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.codelists.domain.CodelistData;
+import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.transform.ImmutableFeaturePropertyTransformerFlatten;
+import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
+import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.CellParentWrapper;
 import de.ii.xtraserver.hale.io.writer.handler.UnsupportedTransformationException;
@@ -36,6 +47,7 @@ import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.filter.AbstractGeotoolsFilter;
+import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.io.File;
@@ -48,8 +60,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
+import org.apache.commons.lang3.StringUtils;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.opengis.filter.Filter;
@@ -65,6 +80,7 @@ public class XtraServerWebApiMappingGenerator {
   private final TypeTransformationHandlerFactory typeHandlerFactory;
   private final PropertyTransformationHandlerFactory propertyHandlerFactory;
   private final ProgressIndicator progress;
+  private final String inspireSchemaName;
 
   /**
    * Constructor
@@ -89,15 +105,37 @@ public class XtraServerWebApiMappingGenerator {
         projectInfo, projectLocation, reporter, ldproxyCfg);
     this.typeHandlerFactory = TypeTransformationHandler.createFactory(mappingContext);
     this.propertyHandlerFactory = PropertyTransformationHandler.createFactory(mappingContext);
-    // Calculate the total work units for the progress indicator (+1 for
-    // writing the
-    // file)
+
+    /* Calculate the total work units for the progress indicator (+1 for
+     writing the file)*/
     int c = 1;
     for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
       c += this.alignment.getPropertyCells(typeCell).size() + 1;
     }
     progress.begin("Translating hale alignment to XtraServer Mapping file", c);
     this.progress = progress;
+
+    String inspireSchemaNameTmp = null;
+    if (targetSchemaSpace.getSchemas() != null) {
+      for (Schema xsd : targetSchemaSpace.getSchemas()) {
+        if (xsd.getNamespace().contains("inspire.ec.europa.eu/schemas")) {
+          String xsdLocation = xsd.getLocation().toString();
+          if (StringUtils.isNotBlank(xsdLocation)) {
+            try {
+              String xsdFileName = xsdLocation.substring(xsdLocation.lastIndexOf("/") + 1,
+                  xsdLocation.length() - 4);
+              if (StringUtils.isNotBlank(xsdFileName)) {
+                inspireSchemaNameTmp = xsdFileName;
+                break;
+              }
+            } catch (IndexOutOfBoundsException e) {
+              // ignore - xsd location malformed?
+            }
+          }
+        }
+      }
+    }
+    this.inspireSchemaName = inspireSchemaNameTmp;
   }
 
   /**
@@ -108,7 +146,8 @@ public class XtraServerWebApiMappingGenerator {
    * @throws UnsupportedTransformationException if the transformation of types or properties is not
    *                                            supported
    */
-  public void generate(final IOReporter reporter, final OutputStream out, String providerId, boolean onlyProviderFile)
+  public void generate(final IOReporter reporter, final OutputStream out, String providerId,
+      boolean onlyProviderFile)
       throws UnsupportedTransformationException, IOException {
 
     for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
@@ -195,13 +234,43 @@ public class XtraServerWebApiMappingGenerator {
     if (onlyProviderFile) {
       ldproxyCfg.writeEntity(providerData, out);
     } else {
+
       ldproxyCfg.addEntity(providerData);
+
       // TODO generate api data with default values, iterate over providerData.getTypes() for collections
-      OgcApiDataV2 apiData;
-      //ldproxyCfg.addEntity(apiData);
-      // TODO write codelist entities that will be stored in the mapping context
-      List<CodelistData> codelists= new ArrayList<>();
-      for (CodelistData codelist : codelists) {
+      ImmutableOgcApiDataV2.Builder apiBuilder = ldproxyCfg.builder().entity().api();
+      apiBuilder.id(providerData.getId()).entityStorageVersion(2).serviceType("OGC_API");
+      apiBuilder.label("${" + providerId + ".service.label:-INSPIRE " + (
+          StringUtils.isNotBlank(this.inspireSchemaName) ? this.inspireSchemaName : providerId)
+          + "}");
+
+      // Konfigurieren der Abflachung
+      ImmutableGeoJsonConfiguration.Builder gjBuilder = ldproxyCfg.builder().ogcApiExtension().geoJson();
+      List<PropertyTransformation> geoJsonApiTransformations = new ArrayList<>();
+      ImmutablePropertyTransformation.Builder flattenTrfBuilder = new ImmutablePropertyTransformation.Builder();
+      flattenTrfBuilder.flatten("_");
+      geoJsonApiTransformations.add(flattenTrfBuilder.build());
+      gjBuilder.putTransformations("*",geoJsonApiTransformations);
+      apiBuilder.addExtensions(gjBuilder.build());
+
+
+      // create service collections (with id, label and description per provider type)
+      SortedMap<String, FeatureTypeConfigurationOgcApi> serviceCollDefsMap = new TreeMap<>();
+      for (FeatureSchema providerType : providerData.getTypes().values()) {
+        ImmutableFeatureTypeConfigurationOgcApi.Builder serviceCollDefBuilder = new ImmutableFeatureTypeConfigurationOgcApi.Builder()
+            .id(providerType.getName()).description(providerType.getDescription());
+        if(providerType.getLabel().isPresent()) {
+          serviceCollDefBuilder.label(providerType.getLabel().get());
+        }
+        serviceCollDefsMap.put(providerType.getName(),serviceCollDefBuilder.build());
+      }
+      apiBuilder.collections(serviceCollDefsMap);
+
+      ldproxyCfg.addEntity(apiBuilder.build());
+
+      // write codelist entities stored in the mapping context
+      List<ImmutableCodelistData> codelists = mappingContext.getCodeLists();
+      for (ImmutableCodelistData codelist : codelists) {
         ldproxyCfg.addEntity(codelist);
       }
 

@@ -17,12 +17,15 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.collect.ImmutableList;
 import de.ii.ldproxy.cfg.LdproxyCfg;
+import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
+import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql.Dialect;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
+import de.ii.xtraserver.webapi.hale.io.writer.visitor.FilterInvalidMeasureProperties;
 import de.interactive_instruments.xtraserver.config.api.XtraServerMappingBuilder;
 import eu.esdihumboldt.hale.common.align.model.Alignment;
 import eu.esdihumboldt.hale.common.align.model.Cell;
@@ -34,10 +37,12 @@ import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -64,9 +69,10 @@ public final class MappingContext {
    */
   private final Map<String, ImmutableFeatureSchema.Builder> featureTypeMappings = new LinkedHashMap<>();
 
+  private final List<ImmutableCodelistData> codeLists = new ArrayList<>();
+
   private ImmutableFeatureSchema.Builder currentFeatureTypeMapping = null;
   private String currentFeatureTypeMappingName = null;
-  // TODO - method to populate mainTableSourcePath (including setting the condition context)
   private EntityDefinition currentMainEntityDefinition = null;
   private String currentMainTableName = null;
   private String currentMainSortKeyField = null;
@@ -144,6 +150,14 @@ public final class MappingContext {
    */
   public Map<String, ImmutableFeatureSchema.Builder> getFeatureTypeMappings() {
     return this.featureTypeMappings;
+  }
+
+  public List<ImmutableCodelistData> getCodeLists() {
+    return this.codeLists;
+  }
+
+  public void addCodeList(ImmutableCodelistData cl) {
+    this.codeLists.add(cl);
   }
 
   /**
@@ -280,6 +294,10 @@ public final class MappingContext {
     ImmutableFeatureProviderSqlData.Builder providerData = ldproxyCfg.builder().entity().provider()
         .id(id);
 
+    ImmutableEpsgCrs.Builder crsBuilder = providerData.nativeCrsBuilder();
+    crsBuilder.code(1);
+    providerData.nativeCrs(crsBuilder.build());
+
     providerData
         .connectionInfoBuilder()
         .dialect(Dialect.PGIS).database("${DB_CONN_DIALECT}").host("${DB_CONN_HOST}")
@@ -288,11 +306,21 @@ public final class MappingContext {
 
     featureTypeMappings.values().stream()
         .map(ImmutableFeatureSchema.Builder::build)
+        .map(fs -> applyTransformations(fs))
+        .filter(Objects::nonNull)
         .forEach(featureSchema -> providerData.putTypes(featureSchema.getName(), featureSchema));
 
     return providerData.build();
   }
 
+  private FeatureSchema applyTransformations(FeatureSchema original) {
+
+    FeatureSchema result = original.accept(new FilterInvalidMeasureProperties());
+
+    // Apply additional transformations, as necessary
+
+    return result;
+  }
 
   /**
    * Replace project variables in a string
