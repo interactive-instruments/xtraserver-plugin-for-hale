@@ -39,6 +39,8 @@ dependencies {
     //implementation "${p2Group}:org.glassfish.jaxb.runtime:+"
 }
 
+configurations.implementation.resolutionStrategy.cacheChangingModulesFor(5, 'minutes')
+
 jar.manifest.attributes(
         'Export-Package': '!de.ii.hale.io.xtraserver.reader.handler,!de.ii.hale.io.xtraserver.writer.handler'
 )
