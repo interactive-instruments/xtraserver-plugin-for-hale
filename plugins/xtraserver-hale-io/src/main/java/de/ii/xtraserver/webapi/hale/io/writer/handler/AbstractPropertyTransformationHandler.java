@@ -290,6 +290,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
             propertyBuilder.role(Role.PRIMARY_INTERVAL_END);
           }
 
+          // cases in which second-to-last property was just created
           if (i < propertyPath.size() - 1) {
 
             // still within the path, create object / object array
@@ -299,15 +300,22 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
             } else {
               propertyBuilder.type(SchemaBase.Type.OBJECT);
             }
+          }
+        }
 
-            // TODO How to identify when to set objectType = Link?
-            // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get TargetFromSchema)
-            // case: Codelist URL
-            ChildDefinition cdNext = propertyPath.get(i + 1).getChild();
-            PropertyDefinition pdNext = cdNext.asProperty();
-            if (pdNext.getName().toString().equals("{http://www.w3.org/1999/xlink}href")) {
-              propertyBuilder.objectType("Link");
-            }
+        // handle cases in which the second-to-last property may already have been created
+        if (i < propertyPath.size() - 1) {
+
+          // TODO How to identify when to set objectType = Link?
+          // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get TargetFromSchema)
+          // case: Codelist URL
+          ChildDefinition cdNext = propertyPath.get(i + 1).getChild();
+          PropertyDefinition pdNext = cdNext.asProperty();
+          // Workaround: using xlink:title as indicator for setting objectType=Link
+          // because ldproxy did not create links for only href without title.
+          // The workaround assumes that xlink:title is always accompanied by xlink:href.
+          if (pdNext.getName().toString().equals("{http://www.w3.org/1999/xlink}title")) {
+            propertyBuilder.objectType("Link");
           }
         }
 

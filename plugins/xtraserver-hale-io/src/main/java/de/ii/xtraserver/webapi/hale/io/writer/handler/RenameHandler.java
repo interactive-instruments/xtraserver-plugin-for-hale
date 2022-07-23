@@ -19,6 +19,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Role;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
@@ -76,6 +77,12 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
     TypeDefinition td = targetPd.getPropertyType();
     SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
         this.mappingContext.getReporter());
+
+    // TODO - Try to identify approach for setting the primary geometry (relevant if a type had multiple such properties).
+    // Would a postprocessing transformation be a solution?
+    if(baseType == Type.GEOMETRY) {
+      propertyBuilder.role(Role.PRIMARY_GEOMETRY);
+    }
 
     // build the current schema structure for inspection
     FeatureSchema fs = propertyBuilder.build();
