@@ -94,10 +94,17 @@ public class XtraServerWebApiMappingFileWriter extends AbstractAlignmentWriter {
         throw new IOProviderConfigurationException(
             "Content type not supported: " + getContentType().getName());
       }
-      // TODO: validate
+
       String providerId =
           Files.getNameWithoutExtension(
               Paths.get(getTarget().getLocation()).getFileName().toString());
+
+      if (!providerId.matches("[\\w-_]+")) {
+        reporter.error("The chosen filename '" + providerId
+                + "'  is not a valid provider id. It may only contain letters, numbers, hyphens and underscores.");
+        reporter.setSuccess(false);
+        return reporter;
+      }
 
       final XtraServerWebApiMappingGenerator generator = new XtraServerWebApiMappingGenerator(
           getAlignment(), getTargetSchema(), progress,

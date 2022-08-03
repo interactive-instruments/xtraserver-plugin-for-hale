@@ -237,7 +237,6 @@ public class XtraServerWebApiMappingGenerator {
 
       ldproxyCfg.addEntity(providerData);
 
-      // TODO generate api data with default values, iterate over providerData.getTypes() for collections
       ImmutableOgcApiDataV2.Builder apiBuilder = ldproxyCfg.builder().entity().api();
       apiBuilder.id(providerData.getId()).entityStorageVersion(2).serviceType("OGC_API");
       apiBuilder.label("${" + providerId + ".service.label:-INSPIRE " + (
