@@ -295,10 +295,14 @@ public final class MappingContext {
         .id(id);
 
     providerData
+        .labelTemplate("{{value}}{{unit | prepend:' [' | append:']'}}")
         .connectionInfoBuilder()
-        .dialect(Dialect.PGIS).database("${DB_CONN_DIALECT}").host("${DB_CONN_HOST}")
-        .user("${DB_CONN_USER}")
-        .password("${DB_CONN_PWD_BASE64}");
+        .dialect(Dialect.PGIS)
+        .host(String.format("${%s.db.host}", id))
+        .database(String.format("${%s.db.name}", id))
+        .user(String.format("${%s.db.user}", id))
+        .password(String.format("${%s.db.password}", id))
+        .addSchemas(String.format("${%s.db.schema:-public}", id));
 
     featureTypeMappings.values().stream()
         .map(ImmutableFeatureSchema.Builder::build)
