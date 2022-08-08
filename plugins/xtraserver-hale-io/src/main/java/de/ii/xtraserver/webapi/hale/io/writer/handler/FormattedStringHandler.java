@@ -21,6 +21,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
@@ -72,7 +73,9 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
     final StringBuilder formattedStr = new StringBuilder(
         mappingContext.resolveProjectVars(pattern));
 
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+    Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
+        sourceProperty.getDefinition());
 
     PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
     TypeDefinition td = pd.getPropertyType();
@@ -164,13 +167,35 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
         }
       }
 
+      Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
+          sourceProperty.getDefinition());
       if (variables.size() == 1) {
-        String sourcePath = this.mappingContext.computeSourcePath(variableSourceEntities.get(0));
-        propertyBuilder.sourcePath(sourcePath);
+        String sourcePath = this.mappingContext.computeSourcePropertyName(variableSourceEntities.get(0));
+        if (joinSourcePath.isPresent()) {
+          if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+            this.mappingContext.getFirstObjectBuilder(targetProperty)
+                .sourcePath(joinSourcePath.get());
+            propertyBuilder.sourcePath(sourcePath);
+          } else {
+            propertyBuilder.sourcePath(joinSourcePath.get() + "/" + sourcePath);
+          }
+        } else {
+          propertyBuilder.sourcePath(sourcePath);
+        }
       } else {
         for (PropertyEntityDefinition ped : variableSourceEntities) {
-          String sourcePath = this.mappingContext.computeSourcePath(ped);
-          propertyBuilder.addSourcePaths(sourcePath);
+          String sourcePath = this.mappingContext.computeSourcePropertyName(ped);
+          if (joinSourcePath.isPresent()) {
+            if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+              this.mappingContext.getFirstObjectBuilder(targetProperty)
+                  .sourcePath(joinSourcePath.get());
+              propertyBuilder.addSourcePaths(sourcePath);
+            } else {
+              propertyBuilder.addSourcePaths(joinSourcePath.get() + "/" + sourcePath);
+            }
+          } else {
+            propertyBuilder.addSourcePaths(sourcePath);
+          }
         }
       }
 

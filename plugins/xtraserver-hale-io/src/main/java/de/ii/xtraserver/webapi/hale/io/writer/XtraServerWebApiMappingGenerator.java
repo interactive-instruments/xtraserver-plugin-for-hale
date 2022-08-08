@@ -16,19 +16,14 @@
 package de.ii.xtraserver.webapi.hale.io.writer;
 
 import de.ii.ldproxy.cfg.LdproxyCfg;
-import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration.NESTED_OBJECTS;
 import de.ii.ogcapi.features.geojson.domain.ImmutableGeoJsonConfiguration;
-import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.xtraplatform.codelists.domain.CodelistData;
 import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
-import de.ii.xtraplatform.features.domain.transform.ImmutableFeaturePropertyTransformerFlatten;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
@@ -213,8 +208,11 @@ public class XtraServerWebApiMappingGenerator {
             }
             if (mainEntityDefinition.getFilter() != null) {
               try {
+                // TODO - Filter auf DB-Spalten noch nicht möglich? Remove-Transformation nutzen?
                 AbstractGeotoolsFilter filter = (AbstractGeotoolsFilter) mainEntityDefinition.getFilter();
                 Filter qualifiedFilter = ECQL.toFilter(filter.getFilterTerm());
+                // Praktisch - die Namen der im Filter genutzten Attribute kann man einfach finden
+//                String[] attNamesInFilter = DataUtilities.attributeNames(qualifiedFilter);
                 sourcePath += "{filter=" + ECQL.toCQL(qualifiedFilter) + "}";
               } catch (ClassCastException | CQLException e) {
                 // ignore

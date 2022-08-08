@@ -69,7 +69,9 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
     }
     final String outputFormat = outputFormatParam.get(0).as(String.class);
 
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+    Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
+        sourceProperty.getDefinition());
 
     PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
     TypeDefinition td = pd.getPropertyType();
@@ -123,10 +125,21 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
       }
     }
 
-    Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+    Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
+        sourceProperty.getDefinition());
+    String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
         .getDefinition());
-    propertyBuilder.sourcePath(sourcePath);
+    if (joinSourcePath.isPresent()) {
+      if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+        this.mappingContext.getFirstObjectBuilder(targetProperty)
+            .sourcePath(joinSourcePath.get());
+        propertyBuilder.sourcePath(sourcePath);
+      } else {
+        propertyBuilder.sourcePath(joinSourcePath.get() + "/" + sourcePath);
+      }
+    } else {
+      propertyBuilder.sourcePath(sourcePath);
+    }
 
     ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();
     String resultingString = "{{value | replace:'"+regex+"':'"+newOutputFormat+"'}}";

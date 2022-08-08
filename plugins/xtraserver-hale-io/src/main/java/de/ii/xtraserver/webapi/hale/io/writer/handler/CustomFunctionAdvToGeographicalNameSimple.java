@@ -55,11 +55,20 @@ class CustomFunctionAdvToGeographicalNameSimple extends FormattedStringHandler {
     typeBuilder.getPropertyMap().put(pName, propertyBuilder);
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
-        .getDefinition());
-    propertyBuilder.sourcePath(sourcePath);
 
-    propertyBuilder.type(SchemaBase.Type.STRING);
+    Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
+        sourceProperty.getDefinition());
+    String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
+        .getDefinition());
+    if (joinSourcePath.isPresent()) {
+      // multiple names are possible!
+      sourcePath = joinSourcePath.get() + "/" + sourcePath;
+      propertyBuilder.type(SchemaBase.Type.VALUE_ARRAY);
+      propertyBuilder.valueType(SchemaBase.Type.STRING);
+    } else {
+      propertyBuilder.type(SchemaBase.Type.STRING);
+    }
+    propertyBuilder.sourcePath(sourcePath);
 
     return Optional.of(propertyBuilder);
   }

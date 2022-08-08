@@ -27,6 +27,7 @@ import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.ChildContext;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.Property;
+import eu.esdihumboldt.hale.common.align.model.impl.PropertyEntityDefinition;
 import eu.esdihumboldt.hale.common.schema.model.ChildDefinition;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
@@ -34,6 +35,7 @@ import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAttributeFlag;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -193,18 +195,62 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
       return null;
     }
 
+    String targetPropertyDisplayPath = fullDisplayPath(targetProperty);
+
     /*
      * Check if target property is a case to generally be ignored.
      */
     PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
     if (pdTgtLast.getConstraint(XmlAttributeFlag.class).isEnabled() &&
         pdTgtLast.getName().getLocalPart().equals("nilReason")) {
-//      mappingContext.getReporter().info("Ignoring relationship for target property {0}.",targetProperty.getDefinition().getDefinition().getDisplayName());
+//      mappingContext.getReporter().info("Ignoring relationship for target property {0}.",targetPropertyDisplayPath);
       return null;
     }
 
+    // Check for currently unsupported cases
+    Map<String, List<PropertyTransformationHandler>> propertyHandlersByTargetPropertyPath =
+        this.mappingContext.getPropertyHandlersByTargetPropertyPath();
+    List<PropertyTransformationHandler> propertyHandlersForTargetPropertyPath;
+    if (propertyHandlersByTargetPropertyPath.containsKey(targetPropertyDisplayPath)) {
+      propertyHandlersForTargetPropertyPath = propertyHandlersByTargetPropertyPath.get(
+          targetPropertyDisplayPath);
+    } else {
+      propertyHandlersForTargetPropertyPath = new ArrayList<>();
+      propertyHandlersByTargetPropertyPath.put(targetPropertyDisplayPath,
+          propertyHandlersForTargetPropertyPath);
+    }
+
+    if (this instanceof AssignHandler && propertyHandlersForTargetPropertyPath.stream().anyMatch(
+        ph -> ph instanceof ClassificationMappingHandler)) {
+      mappingContext.getReporter().warn(
+          "Type relation for {0}: Unsupported case of 'choice' for target property {1} detected (Classification relation encoded, Assign relation ignored).",
+          this.mappingContext.getFeatureTypeName(),
+          targetPropertyDisplayPath);
+      return null;
+    } else if (this instanceof ClassificationMappingHandler
+        && propertyHandlersForTargetPropertyPath.stream().anyMatch(
+        ph -> ph instanceof AssignHandler)) {
+      mappingContext.getReporter().warn(
+          "Type relation for {0}: Unsupported case of 'choice' for target property {1} detected (Assign relation encoded, Classification relation ignored).",
+          this.mappingContext.getFeatureTypeName(),
+          targetPropertyDisplayPath);
+      return null;
+    } else if (this instanceof ClassificationMappingHandler
+        && propertyHandlersForTargetPropertyPath.stream().anyMatch(
+        ph -> ph instanceof ClassificationMappingHandler)) {
+      mappingContext.getReporter().warn(
+          "Type relation for {0}: Unsupported case of multiple Classification relations for target property {1} detected (only the first Classification relation is encoded).",
+          this.mappingContext.getFeatureTypeName(),
+          targetPropertyDisplayPath);
+      return null;
+    }
+
+    // Apply the actual mapping
     final Optional<ImmutableFeatureSchema.Builder> optionalMappingValue = doHandle(propertyCell,
         targetProperty);
+
+    // Keep track that this handler was applied in mappings for the target property
+    propertyHandlersForTargetPropertyPath.add(this);
 
     final String tableName = ((CellParentWrapper) propertyCell).getTableName();
 
@@ -222,7 +268,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   protected abstract Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
       final Property targetProperty);
 
-  protected ImmutableFeatureSchema.Builder buildPropertyPath(Property targetProperty) {
+  protected ImmutableFeatureSchema.Builder buildPropertyPath(Property targetProperty,
+      PropertyEntityDefinition sourceProperty) {
 
     ImmutableFeatureSchema.Builder typeBuilder = mappingContext.getFeatureBuilder();
 
@@ -235,6 +282,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     StringBuilder propertyPathTracker = new StringBuilder();
     propertyPathTracker.append(this.mappingContext.getFeatureTypeName().toLowerCase(Locale.ENGLISH))
         .append(".");
+
+    ImmutableFeatureSchema.Builder firstObjectBuilder = null;
 
     for (int i = 0; i < propertyPath.size(); i++) {
 
@@ -255,7 +304,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
         // return the builder for the second-to-last property instead
         // the current propertyBuilder (i.e. from the previous loop) represents that property (one before 'uom')
         // it can be used to assign the unit
-        return propertyBuilder;
+        break;
 
       } else {
 
@@ -299,6 +348,15 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
               propertyBuilder.type(SchemaBase.Type.OBJECT_ARRAY);
             } else {
               propertyBuilder.type(SchemaBase.Type.OBJECT);
+            }
+
+            if (firstObjectBuilder == null) {
+              firstObjectBuilder = propertyBuilder;
+              this.mappingContext.addFirstObjectBuilderMapping(targetProperty, firstObjectBuilder);
+//              Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(sourceProperty);
+//              if (joinSourcePath.isPresent()) {
+//                firstObjectBuilder.sourcePath(joinSourcePath.get());
+//              }
             }
           }
         }

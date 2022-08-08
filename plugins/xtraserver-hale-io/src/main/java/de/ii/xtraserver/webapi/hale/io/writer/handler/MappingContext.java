@@ -22,6 +22,7 @@ import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql.Dialect;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
@@ -30,6 +31,7 @@ import de.interactive_instruments.xtraserver.config.api.XtraServerMappingBuilder
 import eu.esdihumboldt.hale.common.align.model.Alignment;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
+import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.align.model.impl.PropertyEntityDefinition;
 import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
@@ -46,8 +48,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.swing.ActionMap;
 import javax.xml.namespace.QName;
 
 /**
@@ -89,6 +93,8 @@ public final class MappingContext {
   private final URI projectLocation;
   private final IOReporter reporter;
   private final LdproxyCfg ldproxyCfg;
+  private Map<Property,Builder> currentFirstObjectBuilderMappings = new HashMap<>();
+  private Map<String,List<PropertyTransformationHandler>> currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
 
   /**
    * Constructor Only the first schema is used
@@ -204,7 +210,13 @@ public final class MappingContext {
     this.currentMainTableName = null;
     this.currentMainSortKeyField = null;
     this.currentJoinInfoByJoinTableName = new HashMap<>();
+    this.currentFirstObjectBuilderMappings = new HashMap<>();
 //        this.currentMappingTables.clear();
+    this.currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
+  }
+
+  public Map<String,List<PropertyTransformationHandler>> getPropertyHandlersByTargetPropertyPath() {
+    return this.currentPropertyHandlersByTargetPropertyPath;
   }
 
   /**
@@ -352,28 +364,56 @@ public final class MappingContext {
     this.currentJoinInfoByJoinTableName.put(ji.getJoinTableName(), ji);
   }
 
-  public String computeSourcePath(PropertyEntityDefinition sourceProperty) {
+  public Map<String, JoinInfo> getCurrentJoinInfoByJoinTableName() {
+    return this.currentJoinInfoByJoinTableName;
+  }
 
-    String result = sourceProperty.getDefinition().getName().getLocalPart();
+  public Optional<String> computeJoinSourcePath(PropertyEntityDefinition sourceProperty) {
 
-    if (!this.currentJoinInfoByJoinTableName.isEmpty()) {
+    if (sourceProperty != null && !this.getCurrentJoinInfoByJoinTableName().isEmpty()) {
 
+      String result = "";
       String tableName = sourceProperty.getType().getName().getLocalPart();
-      while (!tableName.equals(this.currentMainTableName)) {
+
+      while (!tableName.equals(this.getMainTableName())) {
         // add join-statement
-        JoinInfo ji = this.currentJoinInfoByJoinTableName.get(tableName);
+        JoinInfo ji = this.getCurrentJoinInfoByJoinTableName().get(tableName);
 
         result = "[" + ji.getBaseTableJoinField() + "=" + ji.getJoinTableJoinField() + "]"
             + ji.getJoinTableName() + "/" + result;
 
         tableName = ji.getBaseTableName();
       }
+
+      if (result.length() > 0) {
+        // strip the last '/'
+        result = result.substring(0, result.length() - 1);
+        return Optional.of(result);
+      }
     }
 
+    return Optional.empty();
+  }
+
+  public String computeSourcePropertyName(PropertyEntityDefinition sourceProperty) {
+
+    String result = sourceProperty.getDefinition().getName().getLocalPart();
     return result;
   }
 
   public LdproxyCfg getLdproxyCfg() {
     return this.ldproxyCfg;
+  }
+
+  public void addFirstObjectBuilderMapping(Property targetProperty, Builder firstObjectBuilder) {
+    this.currentFirstObjectBuilderMappings.put(targetProperty,firstObjectBuilder);
+  }
+
+  public boolean hasFirstObjectBuilderMapping(Property targetProperty) {
+    return this.currentFirstObjectBuilderMappings.containsKey(targetProperty);
+  }
+
+  public Builder getFirstObjectBuilder(Property targetProperty) {
+    return this.currentFirstObjectBuilderMappings.get(targetProperty);
   }
 }

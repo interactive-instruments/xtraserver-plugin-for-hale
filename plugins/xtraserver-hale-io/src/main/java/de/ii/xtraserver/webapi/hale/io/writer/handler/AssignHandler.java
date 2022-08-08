@@ -22,6 +22,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
@@ -66,7 +67,9 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     final ListMultimap<String, ParameterValue> parameters = propertyCell
         .getTransformationParameters();
     final List<ParameterValue> valueParams = parameters.get(PARAMETER_VALUE);
-    final String value = valueParams.get(0).getStringRepresentation();
+    String value = valueParams.get(0).getStringRepresentation();
+    value = mappingContext.resolveProjectVars(value);
+    value = reformatVariable(value);
 
     /*
      * Check if the assignment is a case to generally be ignored.
@@ -88,7 +91,8 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     }
 
     // property creation only after ignore-checks (see above):
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
+        null);
 
     if (isGmlUomProperty(pdTgtLast)) {
 

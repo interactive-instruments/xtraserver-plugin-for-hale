@@ -47,11 +47,22 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
   public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
       final Property targetProperty) {
 
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
-
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,sourceProperty.getDefinition());
+
+    Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
+        sourceProperty.getDefinition());
+    String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
         .getDefinition());
+    if (joinSourcePath.isPresent()) {
+      if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+        this.mappingContext.getFirstObjectBuilder(targetProperty)
+            .sourcePath(joinSourcePath.get());
+      } else {
+        sourcePath = joinSourcePath.get() + "/" + sourcePath;
+      }
+    }
 
     setTypesAndSourcePaths(propertyBuilder, targetProperty, sourcePath);
 

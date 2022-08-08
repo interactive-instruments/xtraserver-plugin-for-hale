@@ -60,13 +60,14 @@ class CustomFunctionAdvToIdentifier extends FormattedStringHandler {
 		}
 		value += mappingContext.getFeatureTypeName() + "_{{value}}";
 
-		ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+		Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
+		ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
+				sourceProperty.getDefinition());
 
 		PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
 		TypeDefinition td = pd.getPropertyType();
 
-		Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-		String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+		String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
 				.getDefinition());
 		propertyBuilder.sourcePath(sourcePath);
 

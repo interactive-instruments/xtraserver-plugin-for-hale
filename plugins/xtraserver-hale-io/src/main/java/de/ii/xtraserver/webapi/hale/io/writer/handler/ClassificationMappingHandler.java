@@ -77,6 +77,7 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
 
       final SortedMap<String, String> codeMappings = new TreeMap<>();
       final Map<Value, Value> valueMap = lookup.asMap();
+
       for (Value sourceValue : valueMap.keySet()) {
         final String targetValueStr = mappingContext.resolveProjectVars(
             valueMap.get(sourceValue).as(String.class));
@@ -137,11 +138,24 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
 //      codeMappings.forEach((key, value) -> System.out.println("   " + key + ": " + value));
 //      fallbackValue.ifPresent(s -> System.out.println("fallback: " + s));
 
-      ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty);
+      ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
+          sourceProperty.getDefinition());
 
-      String sourcePath = this.mappingContext.computeSourcePath(sourceProperty
+      Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
+          sourceProperty.getDefinition());
+      String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
           .getDefinition());
-      propertyBuilder.sourcePath(sourcePath);
+      if (joinSourcePath.isPresent()) {
+        if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+          this.mappingContext.getFirstObjectBuilder(targetProperty)
+              .sourcePath(joinSourcePath.get());
+          propertyBuilder.sourcePath(sourcePath);
+        } else {
+          propertyBuilder.sourcePath(joinSourcePath.get() + "/" + sourcePath);
+        }
+      } else {
+        propertyBuilder.sourcePath(sourcePath);
+      }
 
       ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();
       trfBuilder.codelist(codelistId);
