@@ -147,6 +147,11 @@ public class XtraServerWebApiMappingGenerator {
 
     for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
 
+      // TODO - FUTURE WORK: sort type cells based upon their priority
+//      .stream()
+//        .sorted(Comparator.comparing(Cell::getPriority))
+//        .collect(Collectors.toList())
+
       final String typeTransformationIdentifier = typeCell.getTransformationIdentifier();
 
             /* Create FeatureTypeMapping from the type cells. The Mapping tables
@@ -249,7 +254,6 @@ public class XtraServerWebApiMappingGenerator {
       geoJsonApiTransformations.add(flattenTrfBuilder.build());
       gjBuilder.putTransformations("*",geoJsonApiTransformations);
       apiBuilder.addExtensions(gjBuilder.build());
-
 
       // create service collections (with id, label and description per provider type)
       SortedMap<String, FeatureTypeConfigurationOgcApi> serviceCollDefsMap = new TreeMap<>();

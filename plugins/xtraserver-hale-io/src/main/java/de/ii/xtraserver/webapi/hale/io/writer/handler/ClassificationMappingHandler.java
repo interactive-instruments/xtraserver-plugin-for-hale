@@ -157,13 +157,15 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
         propertyBuilder.sourcePath(sourcePath);
       }
 
-      ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();
-      trfBuilder.codelist(codelistId);
-      if (nullifyFallback) {
-        trfBuilder.addNullify(NULLIFY_VALUE);
-      }
+      ImmutablePropertyTransformation.Builder codelistTrfBuilder = new ImmutablePropertyTransformation.Builder();
+      codelistTrfBuilder.codelist(codelistId);
+      propertyBuilder.addAllTransformationsBuilders(codelistTrfBuilder);
 
-      propertyBuilder.addAllTransformationsBuilders(trfBuilder);
+      if (nullifyFallback) {
+        ImmutablePropertyTransformation.Builder nullifyTrfBuilder = new ImmutablePropertyTransformation.Builder();
+        nullifyTrfBuilder.addNullify(NULLIFY_VALUE);
+        propertyBuilder.addAllTransformationsBuilders(nullifyTrfBuilder);
+      }
 
       SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
           this.mappingContext.getReporter());

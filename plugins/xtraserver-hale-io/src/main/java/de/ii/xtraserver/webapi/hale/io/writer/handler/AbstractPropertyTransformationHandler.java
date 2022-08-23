@@ -33,6 +33,7 @@ import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
+import eu.esdihumboldt.hale.common.schema.model.impl.DefaultGroupPropertyDefinition;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAttributeFlag;
 import java.util.ArrayList;
@@ -288,6 +289,11 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     for (int i = 0; i < propertyPath.size(); i++) {
 
       ChildDefinition cd = propertyPath.get(i).getChild();
+
+      if(cd instanceof DefaultGroupPropertyDefinition) {
+        // ignore choice group definition in the path
+        continue;
+      }
 
       PropertyDefinition pd = cd.asProperty();
       String pName = pd.getName().getLocalPart();
