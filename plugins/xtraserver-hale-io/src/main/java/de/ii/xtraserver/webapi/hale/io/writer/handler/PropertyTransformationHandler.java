@@ -16,13 +16,14 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 
 /**
  * Handler for Property transformations
  */
 @FunctionalInterface
-public interface PropertyTransformationHandler extends TransformationHandler<FeatureSchema.Builder> {
+public interface PropertyTransformationHandler extends TransformationHandler<ImmutableFeatureSchema.Builder> {
 
 	/**
 	 * Create a new {@link PropertyTransformationHandlerFactory} object

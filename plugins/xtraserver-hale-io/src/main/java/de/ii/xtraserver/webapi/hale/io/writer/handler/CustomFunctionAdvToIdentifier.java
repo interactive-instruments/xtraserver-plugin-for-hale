@@ -16,8 +16,17 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
+import eu.esdihumboldt.hale.common.core.io.Value;
+import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.Optional;
 
 /**
@@ -37,9 +46,46 @@ class CustomFunctionAdvToIdentifier extends FormattedStringHandler {
 	 *      Property)
 	 */
 	@Override
-	public Optional<FeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
 
-		return Optional.empty();
+		final Value inspireNamespaceValue = mappingContext
+				.getTransformationProperty(MappingContext.PROPERTY_INSPIRE_NAMESPACE);
+
+		String inspireNamespace = reformatVariable(inspireNamespaceValue.as(String.class));
+
+		String value = "";
+		if (!inspireNamespace.isEmpty()) {
+			value += inspireNamespace
+					+ (inspireNamespace.endsWith("/") ? "" : "/");
+		}
+		value += mappingContext.getFeatureTypeName() + "_{{value}}";
+
+		Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
+		ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
+				sourceProperty.getDefinition());
+
+		PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
+		TypeDefinition td = pd.getPropertyType();
+
+		String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
+				.getDefinition());
+		propertyBuilder.sourcePath(sourcePath);
+
+		ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();
+		trfBuilder.stringFormat(value);
+
+		propertyBuilder.addAllTransformationsBuilders(trfBuilder);
+
+		SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
+				this.mappingContext.getReporter());
+		if (isMultiValuedPropertyPerSchemaDefinition(pd)) {
+			propertyBuilder.type(Type.VALUE_ARRAY);
+			propertyBuilder.valueType(baseType);
+		} else {
+			propertyBuilder.type(baseType);
+		}
+
+		return Optional.of(propertyBuilder);
 	}
 
 }

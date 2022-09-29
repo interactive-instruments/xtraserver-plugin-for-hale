@@ -17,33 +17,41 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.collect.ImmutableList;
 import de.ii.ldproxy.cfg.LdproxyCfg;
+import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
+import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql.Dialect;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
-import de.interactive_instruments.xtraserver.config.api.MappingTableBuilder;
-import de.interactive_instruments.xtraserver.config.api.MappingValue;
+import de.ii.xtraserver.webapi.hale.io.writer.visitor.FilterInvalidMeasureProperties;
 import de.interactive_instruments.xtraserver.config.api.XtraServerMappingBuilder;
 import eu.esdihumboldt.hale.common.align.model.Alignment;
 import eu.esdihumboldt.hale.common.align.model.Cell;
+import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
 import eu.esdihumboldt.hale.common.align.model.Property;
+import eu.esdihumboldt.hale.common.align.model.impl.PropertyEntityDefinition;
 import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.swing.ActionMap;
 import javax.xml.namespace.QName;
 
 /**
@@ -58,18 +66,35 @@ public final class MappingContext {
 
   private final Alignment alignment;
   private final Map<String, Value> transformationProperties;
-  private static final Pattern projectVarPattern = Pattern.compile("\\{\\{project:([^}]+)\\}\\}");
+  private static final Pattern projectVarPattern = Pattern.compile("\\{\\{project:([^}]+)}}");
 
-  private final Map<String, FeatureSchema.Builder> featureTypeMappings = new LinkedHashMap<>();
-  private FeatureSchema.Builder currentFeatureTypeMapping;
-  private String currentFeatureTypeMappingName;
-  private final Map<String, FeatureSchema.Builder> currentMappingTables = new LinkedHashMap<>();
-  private final Set<String> missingAssociationTargets = new TreeSet<String>();
+  /**
+   * Stores the feature schema builders generated while processing the alignment
+   */
+  private final Map<String, ImmutableFeatureSchema.Builder> featureTypeMappings = new LinkedHashMap<>();
+
+  private final List<ImmutableCodelistData> codeLists = new ArrayList<>();
+
+  private ImmutableFeatureSchema.Builder currentFeatureTypeMapping = null;
+  private String currentFeatureTypeMappingName = null;
+  private EntityDefinition currentMainEntityDefinition = null;
+  private String currentMainTableName = null;
+  private String currentMainSortKeyField = null;
+  private Map<String, JoinInfo> currentJoinInfoByJoinTableName = new HashMap<>();
+
+  // TODO - not sure if we need a separate set of "current" featureTypeMappings ... maybe in the
+  //  future for cases of multiple type-relations for the same target type
+
+//    private final Map<String, ImmutableFeatureSchema.Builder> currentMappingTables = new LinkedHashMap<>();
+//    private final Set<String> missingAssociationTargets = new TreeSet<String>();
+
   private final URI applicationSchemaUri;
   private final ProjectInfo projectInfo;
   private final URI projectLocation;
   private final IOReporter reporter;
   private final LdproxyCfg ldproxyCfg;
+  private Map<Property,Builder> currentFirstObjectBuilderMappings = new HashMap<>();
+  private Map<String,List<PropertyTransformationHandler>> currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
 
   /**
    * Constructor Only the first schema is used
@@ -105,21 +130,59 @@ public final class MappingContext {
     this.ldproxyCfg = ldproxyCfg;
   }
 
+  public void setMainEntityDefinition(EntityDefinition mainEntityDefinition) {
+    this.currentMainEntityDefinition = mainEntityDefinition;
+    this.currentMainTableName = this.currentMainEntityDefinition.getType().getName().getLocalPart();
+  }
+
+  public EntityDefinition getMainEntityDefinition() {
+    return this.currentMainEntityDefinition;
+  }
+
+  public String getMainTableName() {
+    return this.currentMainTableName;
+  }
+
+  public void setMainSortKeyField(String sortKey) {
+    this.currentMainSortKeyField = sortKey;
+  }
+
+  public String getMainSortKeyField() {
+    return this.currentMainSortKeyField;
+  }
+
   /**
-   * Add a new FeatureSchema to the mapping context
+   * @return map with key: QName of target feature type as string, value: the respective builder
+   */
+  public Map<String, ImmutableFeatureSchema.Builder> getFeatureTypeMappings() {
+    return this.featureTypeMappings;
+  }
+
+  public List<ImmutableCodelistData> getCodeLists() {
+    return this.codeLists;
+  }
+
+  public void addCodeList(ImmutableCodelistData cl) {
+    this.codeLists.add(cl);
+  }
+
+  /**
+   * Add a new ImmutableFeatureSchema to the mapping context
    *
    * @param featureTypeName feature type name
-   * @return the same FeatureSchema for chaining method calls
+   * @return the same ImmutableFeatureSchema for chaining method calls
    */
-  FeatureSchema.Builder addNextFeatureSchema(final QName featureTypeName) {
-    buildAndClearCurrentTables();
+  ImmutableFeatureSchema.Builder addNextFeatureSchema(final QName featureTypeName) {
+
+    buildAndClearCurrentInfos();
 
     final String key =
         Objects.requireNonNull(featureTypeName, "Feature Type name is null").toString();
     currentFeatureTypeMapping = featureTypeMappings.get(key);
     if (currentFeatureTypeMapping == null) {
       currentFeatureTypeMapping =
-          new Builder().name(featureTypeName.getLocalPart()).type(Type.OBJECT);
+          new ImmutableFeatureSchema.Builder().name(
+              featureTypeName.getLocalPart().toLowerCase(Locale.ENGLISH)).type(Type.OBJECT);
       featureTypeMappings.put(key, currentFeatureTypeMapping);
     }
 
@@ -128,20 +191,32 @@ public final class MappingContext {
     return currentFeatureTypeMapping;
   }
 
-  void addCurrentMappingTable(final String tableName, final FeatureSchema.Builder mappingTable) {
-    this.currentMappingTables.put(tableName, mappingTable);
-  }
+//    void addCurrentMappingTable(final String tableName, final ImmutableFeatureSchema.Builder mappingTable) {
+//        this.currentMappingTables.put(tableName, mappingTable);
+//    }
+//
+//    Collection<ImmutableFeatureSchema.Builder> getCurrentMappingTables() {
+//        return this.currentMappingTables.values();
+//    }
 
-  Collection<FeatureSchema.Builder> getCurrentMappingTables() {
-    return this.currentMappingTables.values();
-  }
-
-  void buildAndClearCurrentTables() {
+  void buildAndClearCurrentInfos() {
     if (this.currentFeatureTypeMapping == null) {
       return;
     }
 
-    this.currentMappingTables.clear();
+    this.currentFeatureTypeMapping = null;
+    this.currentFeatureTypeMappingName = null;
+    this.currentMainEntityDefinition = null;
+    this.currentMainTableName = null;
+    this.currentMainSortKeyField = null;
+    this.currentJoinInfoByJoinTableName = new HashMap<>();
+    this.currentFirstObjectBuilderMappings = new HashMap<>();
+//        this.currentMappingTables.clear();
+    this.currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
+  }
+
+  public Map<String,List<PropertyTransformationHandler>> getPropertyHandlersByTargetPropertyPath() {
+    return this.currentPropertyHandlersByTargetPropertyPath;
   }
 
   /**
@@ -153,18 +228,22 @@ public final class MappingContext {
     return currentFeatureTypeMappingName;
   }
 
-  /**
-   * Return all property paths for which no association target could be found in the schema.
-   *
-   * @return list of properties with missing association targets
-   */
-  public Set<String> getMissingAssociationTargets() {
-    return this.missingAssociationTargets;
+  public ImmutableFeatureSchema.Builder getFeatureBuilder() {
+    return this.currentFeatureTypeMapping;
   }
 
-  void addMissingAssociationTarget(final String associationTarget) {
-    this.missingAssociationTargets.add(associationTarget);
-  }
+//    /**
+//     * Return all property paths for which no association target could be found in the schema.
+//     *
+//     * @return list of properties with missing association targets
+//     */
+//    public Set<String> getMissingAssociationTargets() {
+//        return this.missingAssociationTargets;
+//    }
+
+//    void addMissingAssociationTarget(final String associationTarget) {
+//        this.missingAssociationTargets.add(associationTarget);
+//    }
 
   Value getTransformationProperty(final String name) {
     final Value val = this.transformationProperties.get(name);
@@ -174,26 +253,26 @@ public final class MappingContext {
     return Value.NULL;
   }
 
-  /**
-   * Retrieve table from current FeatureTypeMapping
-   *
-   * @param tableName Mapping Table name
-   * @return MappingTable
-   */
-  Optional<FeatureSchema.Builder> getTableMapping(String tableName) {
-    return Optional.ofNullable(currentMappingTables.get(tableName));
-  }
+//    /**
+//     * Retrieve table from current FeatureTypeMapping
+//     *
+//     * @param tableName Mapping Table name
+//     * @return MappingTable
+//     */
+//    Optional<ImmutableFeatureSchema.Builder> getTableMapping(String tableName) {
+//        return Optional.ofNullable(currentMappingTables.get(tableName));
+//    }
 
-  void addValueMappingForTable(
-      final Property target, final FeatureSchema.Builder valueMapping, final String tableName) {
-    final FeatureSchema.Builder tableMapping =
-        getTableMapping(tableName)
-            .orElseThrow(() -> new IllegalArgumentException("Table " + tableName + " not found"));
+//    void addValueMappingForTable(
+//            final Property target, final ImmutableFeatureSchema.Builder valueMapping, final String tableName) {
+//        final ImmutableFeatureSchema.Builder tableMapping =
+//                getTableMapping(tableName)
+//                        .orElseThrow(() -> new IllegalArgumentException("Table " + tableName + " not found"));
+//
+//        tableMapping.putProperties2(valueMapping.build().getName(), (Builder) valueMapping);
+//    }
 
-    tableMapping.putProperties2(valueMapping.build().getName(), (Builder) valueMapping);
-  }
-
-  IOReporter getReporter() {
+  public IOReporter getReporter() {
     return reporter;
   }
 
@@ -208,13 +287,13 @@ public final class MappingContext {
   }
 
   /**
-	 * Return the FeatureProviderDataV2 containing all FeatureSchemas that were
-	 * propagated
+   * Return the FeatureProviderDataV2 containing all FeatureSchemas that were propagated
    *
    * @return FeatureProviderDataV2 containing all FeatureSchemas
    */
   public FeatureProviderDataV2 getProviderData(String id) {
-    buildAndClearCurrentTables();
+
+    buildAndClearCurrentInfos();
 
     final XtraServerMappingBuilder xtraServerMappingBuilder = new XtraServerMappingBuilder();
 
@@ -227,11 +306,32 @@ public final class MappingContext {
     ImmutableFeatureProviderSqlData.Builder providerData = ldproxyCfg.builder().entity().provider()
         .id(id);
 
+    providerData
+        .labelTemplate("{{value}}{{unit | prepend:' [' | append:']'}}")
+        .connectionInfoBuilder()
+        .dialect(Dialect.PGIS)
+        .host(String.format("${%s.db.host}", id))
+        .database(String.format("${%s.db.name}", id))
+        .user(String.format("${%s.db.user}", id))
+        .password(String.format("${%s.db.password}", id))
+        .addSchemas(String.format("${%s.db.schema:-public}", id));
+
     featureTypeMappings.values().stream()
-        .map(FeatureSchema.Builder::build)
+        .map(ImmutableFeatureSchema.Builder::build)
+        .map(fs -> applyTransformations(fs))
+        .filter(Objects::nonNull)
         .forEach(featureSchema -> providerData.putTypes(featureSchema.getName(), featureSchema));
 
     return providerData.build();
+  }
+
+  private FeatureSchema applyTransformations(FeatureSchema original) {
+
+    FeatureSchema result = original.accept(new FilterInvalidMeasureProperties());
+
+    // Apply additional transformations, as necessary
+
+    return result;
   }
 
   /**
@@ -239,7 +339,7 @@ public final class MappingContext {
    *
    * @param str input string
    * @return string with replaced project variables, unresolved variables are replaced with
-   *     'PROJECT_VARIABLE_<VARIABLE_NAME>_NOT_SET'
+   * 'PROJECT_VARIABLE_<VARIABLE_NAME>_NOT_SET'
    */
   public String resolveProjectVars(final String str) {
     final Matcher m = projectVarPattern.matcher(str);
@@ -255,8 +355,65 @@ public final class MappingContext {
       }
       repStr =
           repStr.replaceAll(
-              "\\{\\{project:" + varName + "\\}\\}", Matcher.quoteReplacement(replacement));
+              "\\{\\{project:" + varName + "}}", Matcher.quoteReplacement(replacement));
     }
     return repStr;
+  }
+
+  public void addJoinInfo(JoinInfo ji) {
+    this.currentJoinInfoByJoinTableName.put(ji.getJoinTableName(), ji);
+  }
+
+  public Map<String, JoinInfo> getCurrentJoinInfoByJoinTableName() {
+    return this.currentJoinInfoByJoinTableName;
+  }
+
+  public Optional<String> computeJoinSourcePath(PropertyEntityDefinition sourceProperty) {
+
+    if (sourceProperty != null && !this.getCurrentJoinInfoByJoinTableName().isEmpty()) {
+
+      String result = "";
+      String tableName = sourceProperty.getType().getName().getLocalPart();
+
+      while (!tableName.equals(this.getMainTableName())) {
+        // add join-statement
+        JoinInfo ji = this.getCurrentJoinInfoByJoinTableName().get(tableName);
+
+        result = "[" + ji.getBaseTableJoinField() + "=" + ji.getJoinTableJoinField() + "]"
+            + ji.getJoinTableName() + "/" + result;
+
+        tableName = ji.getBaseTableName();
+      }
+
+      if (result.length() > 0) {
+        // strip the last '/'
+        result = result.substring(0, result.length() - 1);
+        return Optional.of(result);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  public String computeSourcePropertyName(PropertyEntityDefinition sourceProperty) {
+
+    String result = sourceProperty.getDefinition().getName().getLocalPart();
+    return result;
+  }
+
+  public LdproxyCfg getLdproxyCfg() {
+    return this.ldproxyCfg;
+  }
+
+  public void addFirstObjectBuilderMapping(Property targetProperty, Builder firstObjectBuilder) {
+    this.currentFirstObjectBuilderMappings.put(targetProperty,firstObjectBuilder);
+  }
+
+  public boolean hasFirstObjectBuilderMapping(Property targetProperty) {
+    return this.currentFirstObjectBuilderMappings.containsKey(targetProperty);
+  }
+
+  public Builder getFirstObjectBuilder(Property targetProperty) {
+    return this.currentFirstObjectBuilderMappings.get(targetProperty);
   }
 }

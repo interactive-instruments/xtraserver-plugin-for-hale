@@ -28,7 +28,7 @@ import eu.esdihumboldt.hale.common.align.model.Cell;
 public interface TransformationHandler<T> {
 
 	/**
-	 * Transforms a alignment cell into an output type
+	 * Transforms an alignment cell into an output type
 	 * 
 	 * @param cell the alignment cell
 	 * @return output type to transform to

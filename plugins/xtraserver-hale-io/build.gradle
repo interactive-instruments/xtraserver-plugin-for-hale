@@ -28,6 +28,7 @@ dependencies {
     implementation "${p2Group}:eu.esdihumboldt.hale.io.jdbc:+"
     implementation "${p2Group}:eu.esdihumboldt.hale.io.xsd:+"
     implementation "${p2Group}:eu.esdihumboldt.util:+"
+    implementation "${p2Group}:org.apache.commons.lang3:+"
     implementation "${p2Group}:org.apache.ws.commons.schema.XmlSchema:+"
     implementation "${p2Group}:org.eclipse.core.contenttype:+"
     implementation "${p2Group}:org.eclipse.osgi:+"
@@ -37,6 +38,8 @@ dependencies {
     //implementation "${p2Group}:com.sun.xml.bind.jaxb-core:+"
     //implementation "${p2Group}:org.glassfish.jaxb.runtime:+"
 }
+
+configurations.implementation.resolutionStrategy.cacheChangingModulesFor(5, 'minutes')
 
 jar.manifest.attributes(
         'Export-Package': '!de.ii.hale.io.xtraserver.reader.handler,!de.ii.hale.io.xtraserver.writer.handler'

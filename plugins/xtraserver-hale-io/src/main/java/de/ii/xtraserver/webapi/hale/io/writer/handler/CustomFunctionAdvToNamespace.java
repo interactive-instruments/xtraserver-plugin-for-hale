@@ -16,8 +16,13 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
+import eu.esdihumboldt.hale.common.core.io.Value;
 import java.util.Optional;
 
 /**
@@ -37,9 +42,34 @@ class CustomFunctionAdvToNamespace extends FormattedStringHandler {
 	 *      Property)
 	 */
 	@Override
-	public Optional<FeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
 
-		return Optional.empty();
+		final Value inspireNamespace = mappingContext
+				.getTransformationProperty(MappingContext.PROPERTY_INSPIRE_NAMESPACE);
+
+		if (inspireNamespace.isEmpty()) {
+
+			return Optional.empty();
+
+		} else {
+
+			String value = inspireNamespace.as(String.class);
+			value = reformatVariable(value);
+
+			ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
+					null);
+
+			propertyBuilder.constantValue(value);
+
+			SchemaBase.Type baseType = SchemaBase.Type.STRING;
+			if (isMultiValuedPropertyPerSchemaDefinition(getLastPropertyDefinition(targetProperty))) {
+				propertyBuilder.type(Type.VALUE_ARRAY);
+				propertyBuilder.valueType(baseType);
+			} else {
+				propertyBuilder.type(baseType);
+			}
+
+			return Optional.of(propertyBuilder);
+		}
 	}
-
 }

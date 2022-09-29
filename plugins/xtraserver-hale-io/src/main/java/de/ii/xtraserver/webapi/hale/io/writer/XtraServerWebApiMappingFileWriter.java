@@ -88,21 +88,30 @@ public class XtraServerWebApiMappingFileWriter extends AbstractAlignmentWriter {
     try (final OutputStream out = getTarget().getOutput()) {
       if (getContentType().getId().equals(CONTENT_TYPE_MAPPING)) {
         progress.setCurrentTask("Writing XtraServer Web API Provider File");
+      } else if (getContentType().getId().equals(CONTENT_TYPE_ARCHIVE)) {
+        progress.setCurrentTask("Writing XtraServer Web API Configuration Archive");
       } else {
         throw new IOProviderConfigurationException(
             "Content type not supported: " + getContentType().getName());
       }
-      // TODO: validate
+
       String providerId =
           Files.getNameWithoutExtension(
               Paths.get(getTarget().getLocation()).getFileName().toString());
+
+      if (!providerId.matches("[\\w-_]+")) {
+        reporter.error("The chosen filename '" + providerId
+                + "'  is not a valid provider id. It may only contain letters, numbers, hyphens and underscores.");
+        reporter.setSuccess(false);
+        return reporter;
+      }
 
       final XtraServerWebApiMappingGenerator generator = new XtraServerWebApiMappingGenerator(
           getAlignment(), getTargetSchema(), progress,
           Collections.unmodifiableMap(projectProperties), getProjectInfo(),
           getProjectLocation(), reporter);
 
-      generator.generate(reporter, out, providerId);
+      generator.generate(reporter, out, providerId, getContentType().getId().equals(CONTENT_TYPE_MAPPING));
 
       progress.advance(1);
     } catch (final UnsupportedTransformationException e) {
