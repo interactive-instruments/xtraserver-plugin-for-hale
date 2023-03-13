@@ -1,23 +1,33 @@
 plugins {
-    id "de.undercouch.download" version "4.1.1"
+    id "de.undercouch.download" version "5.3.1"
     id "com.diffplug.p2.asmaven" version "3.26.1" apply false
     id "biz.aQute.bnd.builder" version "5.1.2" apply false
     id "org.standardout.bnd-platform" version "1.7.0" apply false
 }
 
 ext {
-    haleVersion = project.findProperty("dev") ? '4.2.0.SNAPSHOT' : project.findProperty("haleVersion") ?: '4.1.0'
+    haleVersion = project.findProperty("dev") ? '5.1.0.SNAPSHOT' : project.findProperty("haleVersion") ?: '5.0.0'
     configUtilVersion = '1.0.13'
     ldproxyCfgVersion = '3.2.4-SNAPSHOT'
     p2Group = 'hale-platform'
     os = project.findProperty("os") ?: 'linux'
     dev = project.findProperty("dev") ?: false
+    haleDir = file("$buildDir/hale")
+    haleContents = os == "macos" ? file("$buildDir/hale/hale studio.app/Contents/Eclipse/") : file("$buildDir/hale/")
+    haleRepo = os == "macos" ? file("$haleContents/plugins/") : file("$haleContents/plugins/")
+    haleReleaseName = os == 'linux'
+        ? "hale-studio-${haleVersion}-linux.gtk.x86_64.tar.gz"
+        : os == 'windows'
+            ? "hale-studio-${haleVersion}-win32.win32.x86_64.zip"
+            : os == 'macos'
+                ? "hale-studio-${haleVersion}-macosx.cocoa.x86_64.tar.gz"
+                : null
 }
 
 allprojects {
     group = 'de.interactive_instruments'
 
-    version = '2.0.0'
+    version = '3.0.0'
 
     repositories {
         mavenCentral()
@@ -47,12 +57,12 @@ subprojects {
         evaluationDependsOn(':hale')
 
         repositories {
-            maven {
-                url rootProject.file('hale/build/p2asmaven/maven')
+            ivy {
+                name 'hale-platform2'
                 metadataSources {
-                    mavenPom()
                     artifact()
                 }
+                artifactPattern "$haleRepo/[module]_[revision].jar"
             }
         }
 

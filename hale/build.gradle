@@ -1,15 +1,26 @@
-apply plugin: 'com.diffplug.p2.asmaven'
 
-p2AsMaven {
-	group p2Group, {
-		repo "http://build-artifacts.wetransform.to/p2/hale/${haleVersion.contains('.SNAPSHOT') ? haleVersion.replace('.SNAPSHOT', '-SNAPSHOT') : haleVersion}"
-
-		feature 'eu.esdihumboldt.cst.feature'
-		feature 'eu.esdihumboldt.hale.common.feature.base'
-		feature 'eu.esdihumboldt.hale.io.feature.core'
-
-		iu 'eu.esdihumboldt.hale.common.headless.test'
-
-		append true
-	}
+ext {
+    haleDownloadUrl = dev 
+        ? "https://builds.wetransform.to/job/hale/job/hale~publish(master)/lastSuccessfulBuild/artifact/build/target/${haleReleaseName}" 
+        : "https://github.com/halestudio/hale/releases/download/${haleVersion}/${haleReleaseName}"
+    haleArchive = new File(new File(System.getProperty("java.io.tmpdir")), "${rootProject.name}/${haleReleaseName}")
 }
+
+download.run({
+    src haleDownloadUrl
+    dest haleArchive
+    overwrite false
+})
+
+copy {
+    from(os == 'windows' ? zipTree(haleArchive) : tarTree(haleArchive)) {
+        include "hale*/**"
+        eachFile { fcd ->
+            fcd.relativePath = new RelativePath(true, fcd.relativePath.segments.drop(1))
+            fcd.mode = 0755
+        }
+        includeEmptyDirs = false
+    }
+    into haleDir
+}
+

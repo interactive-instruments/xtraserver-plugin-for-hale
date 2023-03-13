@@ -1,18 +1,5 @@
 import groovy.xml.XmlUtil
 
-def getReleaseName() {
-    if (os == 'linux') {
-        return "hale-studio-${haleVersion}-linux.gtk.x86_64.tar"
-    }
-    if (os == 'windows') {
-        return "hale-studio-${haleVersion}-win32.win32.x86_64.zip"
-    }
-    if (os == 'macos') {
-        return "hale-studio-${haleVersion}-macosx.cocoa.x86_64.tar"
-    }
-    throw new IllegalArgumentException()
-}
-
 def getPackageName() {    
     def version = haleVersion
 
@@ -30,39 +17,9 @@ def getPackageName() {
     throw new IllegalArgumentException()
 }
 
-def getDownloadUrl() {
-    if (dev) {
-        return "https://builds.wetransform.to/job/hale/job/hale~publish(master)/lastSuccessfulBuild/artifact/build/target/${getReleaseName()}"
-    }
-
-    return "https://github.com/halestudio/hale/releases/download/${haleVersion}/${getReleaseName()}"
-}
-
-task downloadHale(type: Download) {
-    src getDownloadUrl()
-    dest new File(new File(System.getProperty("java.io.tmpdir")), "${project.name}/${getReleaseName()}")
-    overwrite false
-}
-
-task getHale(dependsOn: downloadHale, type: Copy) {
-    from(os == 'windows' ? zipTree(downloadHale.dest) : tarTree(downloadHale.dest)) {
-        include "hale*/**"
-        eachFile { fcd ->
-            fcd.relativePath = new RelativePath(true, fcd.relativePath.segments.drop(1))
-            fcd.mode = 0755
-        }
-        includeEmptyDirs = false
-    }
-    into new File(buildDir, 'hale')
-}
-
-task cleanHale(dependsOn: getHale, type: Delete) {
-    File cfgDir = getHale.destinationDir
-    if (os == "macos") {
-        cfgDir = new File(cfgDir, 'hale studio.app/Contents/Eclipse')
-    }
-    delete new File(cfgDir, 'features').listFiles().findAll {it.name.startsWith("de.interactive_instruments") || it.name.contains("xtraserver")}
-    delete fileTree("${cfgDir}/plugins") {
+task cleanHale(type: Delete) {
+    delete new File(haleContents, 'features').listFiles().findAll {it.name.startsWith("de.interactive_instruments") || it.name.contains("xtraserver")}
+    delete fileTree("${haleContents}/plugins") {
         include 'de.interactive_instruments*'
         include '*.xtraserver*'
         include '*.ldproxy*'
@@ -84,32 +41,23 @@ task pluginsHale(dependsOn: [cleanHale, bundleFeatures], type: Copy) {
             includeEmptyDirs = false
         }
     }
-    File cfgDir = getHale.destinationDir
-    if (os == "macos") {
-        cfgDir = new File(cfgDir, 'hale studio.app/Contents/Eclipse')
-    }
-    into cfgDir
+    into haleContents
 }
 
 task patchHale(dependsOn: pluginsHale) {
     doLast {
-        File cfgDir = getHale.destinationDir
-        if (os == "macos") {
-            cfgDir = new File(cfgDir, 'hale studio.app/Contents/Eclipse')
-        }
-
         // enable debugging
-        new File(cfgDir, 'HALE.ini').append('-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005')
+        new File(haleContents, 'HALE.ini').append('-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005')
 
         // cleanup bundles.info
-        def bundlesInfo = new File(cfgDir, 'configuration/org.eclipse.equinox.simpleconfigurator/bundles.info')
+        def bundlesInfo = new File(haleContents, 'configuration/org.eclipse.equinox.simpleconfigurator/bundles.info')
         def bundlesInfoFiltered = bundlesInfo.filterLine {!it.contains("xtraserver") && !it.contains("ldproxy")}
         bundlesInfo.write(bundlesInfoFiltered.toString(), 'UTF-8')
 
 
 
         // cleanup artifacts.xml
-        def artifactsXml = new File(cfgDir, 'artifacts.xml')
+        def artifactsXml = new File(haleContents, 'artifacts.xml')
         def repository = new XmlSlurper().parse(artifactsXml)
 
         // update time
@@ -144,7 +92,7 @@ task patchHale(dependsOn: pluginsHale) {
         }
 
         // update platform.xml
-        def platformXml = new File(cfgDir, 'configuration/org.eclipse.update/platform.xml')
+        def platformXml = new File(haleContents, 'configuration/org.eclipse.update/platform.xml')
         def config = new XmlSlurper().parse(platformXml)
         config.'@date' = current
 
@@ -186,7 +134,7 @@ task patchHale(dependsOn: pluginsHale) {
 }
 
 task hale(dependsOn: patchHale, type:Exec) {
-    workingDir new File(buildDir, 'hale')
+    workingDir haleDir
     if (os == 'windows') {
         commandLine 'cmd', '/c', 'HALE.exe'
     } else if (os == 'macos') {
@@ -202,6 +150,6 @@ task packageHale(dependsOn: patchHale, type: os == "windows" ? Zip : Tar) {
     if (os != "windows")
         compression = Compression.GZIP
 
-    from "$buildDir/hale"
-    into getReleaseName() - (os == "windows" ? ".zip" : ".tar.gz")
+    from haleDir
+    into haleReleaseName - (os == "windows" ? ".zip" : ".tar.gz")
 }
