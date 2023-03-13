@@ -10,7 +10,7 @@ pipeline:
       - hale
 
   build:
-    image: openjdk:8-alpine
+    image: eclipse-temurin:17-jdk
     commands:
       - export GRADLE_USER_HOME=$${DRONE_WORKSPACE}/.gradle
       - ./gradlew build
@@ -18,7 +18,7 @@ pipeline:
       event: [push,tag]
 
   updatesite:
-    image: openjdk:8-alpine
+    image: eclipse-temurin:17-jdk
     commands:
       - export GRADLE_USER_HOME=$${DRONE_WORKSPACE}/.gradle
       - ./gradlew updatesite
