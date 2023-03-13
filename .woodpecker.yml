@@ -28,7 +28,7 @@ pipeline:
       event: [tag]
 
   publish:
-    image: plugins/gh-pages
+    image: plugins/gh-pages:1.3.2
     pages_directory: build/public/
     secrets: [ github_username, github_password]
     when:
