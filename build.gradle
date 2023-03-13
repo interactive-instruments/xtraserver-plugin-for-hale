@@ -7,7 +7,7 @@ plugins {
 
 ext {
     haleVersion = project.findProperty("dev") ? '5.1.0.SNAPSHOT' : project.findProperty("haleVersion") ?: '5.0.0'
-    configUtilVersion = '1.0.13'
+    configUtilVersion = '2.0.0'
     ldproxyCfgVersion = '3.4.0-cfglib-SNAPSHOT'
     p2Group = 'hale-platform'
     os = project.findProperty("os") ?: 'linux'
