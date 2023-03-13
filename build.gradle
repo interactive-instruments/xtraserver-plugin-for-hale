@@ -8,7 +8,7 @@ plugins {
 ext {
     haleVersion = project.findProperty("dev") ? '5.1.0.SNAPSHOT' : project.findProperty("haleVersion") ?: '5.0.0'
     configUtilVersion = '1.0.13'
-    ldproxyCfgVersion = '3.2.4-SNAPSHOT'
+    ldproxyCfgVersion = '3.4.0-cfglib-SNAPSHOT'
     p2Group = 'hale-platform'
     os = project.findProperty("os") ?: 'linux'
     dev = project.findProperty("dev") ?: false
@@ -50,8 +50,8 @@ subprojects {
         apply plugin: 'biz.aQute.bnd.builder'
 
         java {
-            sourceCompatibility JavaVersion.VERSION_1_8
-            targetCompatibility JavaVersion.VERSION_1_8
+            sourceCompatibility JavaVersion.VERSION_11
+            targetCompatibility JavaVersion.VERSION_11
         }
 
         evaluationDependsOn(':hale')
@@ -73,17 +73,12 @@ subprojects {
                     'Import-Package': '!javax.annotation.*,!de.ii.xtraserver.hale.io.*,*',
                     'Bundle-Name': description,
                     'Bundle-SymbolicName': "${group}.${name.replaceAll('-','.')};singleton:=true",
-                    'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
-                    'Require-Capability': 'osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"',
                     'Bundle-Vendor': 'interactive-instruments GmbH',
                     'Bundle-License': "https://www.gnu.org/licenses/lgpl-3.0"
             )
         }
     }
 }
-
-
-//apply from: './hale-p2.gradle'
 
 apply from: './mvn2osgi.gradle'
 

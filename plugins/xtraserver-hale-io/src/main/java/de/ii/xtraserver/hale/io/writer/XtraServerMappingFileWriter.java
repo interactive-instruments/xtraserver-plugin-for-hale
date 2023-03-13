@@ -21,7 +21,7 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Set;
 
-import javax.xml.bind.JAXBException;
+import jakarta.xml.bind.JAXBException;
 import javax.xml.stream.XMLStreamException;
 
 import org.xml.sax.SAXException;

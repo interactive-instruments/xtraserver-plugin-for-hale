@@ -42,7 +42,7 @@ task configUtilDocs {
     inputs.property 'md', Doc.from(MultiJoinSpec.get())
 
     doFirst {
-        println inputs.properties.md
+        //println inputs.properties.md
         mdFile.text = inputs.properties.md
     }
 }
@@ -79,7 +79,7 @@ task docs {
             file.text = new SimpleTemplateEngine()
                     .createTemplate(new File(htmlSourceDir, 'hale-wrapper.html'))
                     .make([title: "${toc.title} - ${toc.topics[file.name]}", body: file.text])
-            println file.text
+            //println file.text
         }
 
         def writer = new StringWriter()
