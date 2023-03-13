@@ -34,7 +34,8 @@ platform {
             plugin project(pluginPath)
         }
     }
-    eclipseMirror = 'http://philippkatz.de/eclipse-p2-minimal.tar.gz'
+    //eclipseMirror = 'http://philippkatz.de/eclipse-p2-minimal.tar.gz'
+    eclipseHome = file("$buildDir/eclipse")
 }
 // don't let stale bundles lay around
 //bundles.dependsOn(clean)
@@ -44,13 +45,25 @@ configurations.collectMany { it.allDependencies }.findAll { it instanceof Projec
 }
 
 //TODO: add license + copyright
-tasks.bundleFeatures.doLast {
-    project.platform.features.values().each { def feature ->
-        File featureJar = new File(new File(project.buildDir, 'features'), "${feature.id}_${feature.version}.jar")
+tasks.bundleFeatures {
+    doFirst {
+        download.run({
+            src 'http://philippkatz.de/eclipse-p2-minimal.tar.gz'
+            dest "$buildDir/tmp/eclipse-p2-minimal.tar.gz"
+            overwrite false
+        })
+        copy {
+            from tarTree("$buildDir/tmp/eclipse-p2-minimal.tar.gz")
+            into "$buildDir"
+        }
+    }
+    doLast {
+        project.platform.features.values().each { def feature ->
+            File featureJar = new File(new File(project.buildDir, 'features'), "${feature.id}_${feature.version}.jar")
 
-        println "FEATURE " + featureJar.name
+            println "FEATURE " + featureJar.name
+        }
     }
 }
-
 //TODO: jar signing
 
