@@ -32,6 +32,7 @@ import eu.esdihumboldt.hale.common.core.io.report.impl.IOMessageImpl;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import eu.esdihumboldt.hale.common.schema.model.TypeIndex;
+import eu.esdihumboldt.hale.util.nonosgi.contenttype.describer.XMLRootElementContentDescriber2;
 
 /**
  * Reads an XtraServer Mapping file into an Alignment .
@@ -39,6 +40,9 @@ import eu.esdihumboldt.hale.common.schema.model.TypeIndex;
  * @author zahnen
  */
 public class XtraServerMappingFileReader extends AbstractAlignmentReader {
+
+	// an explicit usage of XMLRootElementContentDescriber2 is needed, otherwise the implicit import in plugin.xml does not work
+	private static final XMLRootElementContentDescriber2 DUMMY_IMPORT = new XMLRootElementContentDescriber2();
 
 	/**
 	 * @see eu.esdihumboldt.hale.common.core.io.IOProvider#isCancelable()

@@ -24,6 +24,7 @@ dependencies {
     implementation "${p2Group}:eu.esdihumboldt.hale.common.schema:+"
     implementation "${p2Group}:eu.esdihumboldt.hale.io.jdbc:+"
     implementation "${p2Group}:eu.esdihumboldt.hale.io.xsd:+"
+    implementation "${p2Group}:eu.esdihumboldt.hale.util.nonosgi:+"
     implementation "${p2Group}:eu.esdihumboldt.util:+"
     implementation "${p2Group}:org.apache.commons.lang3:+"
     implementation "${p2Group}:org.apache.ws.commons.schema.XmlSchema:+"
