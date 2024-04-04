@@ -6,9 +6,9 @@ plugins {
 }
 
 ext {
-    haleVersion = project.findProperty("dev") ? '5.1.0.SNAPSHOT' : project.findProperty("haleVersion") ?: '5.0.0'
-    configUtilVersion = '2.0.1'
-    ldproxyCfgVersion = '3.4.0-cfglib-SNAPSHOT'
+    haleVersion = project.findProperty("dev") ? '5.2.0.SNAPSHOT' : project.findProperty("haleVersion") ?: '5.1.0'
+    configUtilVersion = '2.0.2'
+    ldproxyCfgVersion = '3.4.2'
     p2Group = 'hale-platform'
     os = project.findProperty("os") ?: 'linux'
     dev = project.findProperty("dev") ?: false
@@ -27,7 +27,7 @@ ext {
 allprojects {
     group = 'de.interactive_instruments'
 
-    version = '3.0.1'
+    version = '3.0.2'
 
     repositories {
         mavenCentral()
