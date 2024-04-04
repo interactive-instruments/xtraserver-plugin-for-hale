@@ -91,8 +91,8 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
 				final String targetValueStr = '\'' + mappingContext.resolveProjectVars(valueMap.get(sourceValue).as(String.class))
 						+ '\'';
 				String sourceValueStr = sourceValue.as(String.class);
-				sourceValueStr = "true".equals(sourceValueStr) ? "t" : sourceValueStr;
-				sourceValueStr = "false".equals(sourceValueStr) ? "f" : sourceValueStr;
+				sourceValueStr = "true".equals(sourceValueStr) ? "TRUE" : sourceValueStr;
+				sourceValueStr = "false".equals(sourceValueStr) ? "FALSE" : sourceValueStr;
 
 				mappingValue.keyValue(sourceValueStr, targetValueStr);
 			}
