@@ -17,9 +17,9 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
-import de.ii.ldproxy.cfg.LdproxyCfg;
-import de.ii.xtraplatform.codelists.domain.CodelistData.ImportType;
-import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
+import de.ii.ldproxy.cfg.LdproxyCfgWriter;
+import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.codelists.domain.ImmutableCodelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -177,14 +177,14 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
       }
 
       // create actual codelist entity with ldproxyCfg
-      LdproxyCfg ldproxyCfg = mappingContext.getLdproxyCfg();
-      ImmutableCodelistData.Builder clBuilder = ldproxyCfg.builder().entity().codelist();
-      clBuilder.id(codelistId).label(codelistLabel).sourceType(ImportType.TEMPLATES);
+      LdproxyCfgWriter ldproxyCfg = mappingContext.getLdproxyCfg();
+      ImmutableCodelist.Builder clBuilder = ldproxyCfg.builder().value().codelist();
+      clBuilder.label(codelistLabel).sourceType(Codelist.ImportType.TEMPLATES);
       clBuilder.entries(codeMappings);
       clBuilder.fallback(fallbackValue);
 
       // add codelist entity to mapping context
-      this.mappingContext.addCodeList(clBuilder.build());
+      this.mappingContext.addCodeList(codelistId, clBuilder.build());
 
       return Optional.of(propertyBuilder);
     }

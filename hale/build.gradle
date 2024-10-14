@@ -2,7 +2,7 @@
 ext {
     haleDownloadUrl = dev 
         ? "https://builds.wetransform.to/job/hale/job/hale~publish(master)/lastSuccessfulBuild/artifact/build/target/${haleReleaseName}" 
-        : "https://github.com/halestudio/hale/releases/download/${haleVersion}/${haleReleaseName}"
+        : "https://github.com/halestudio/hale/releases/download/v${haleVersion}/${haleReleaseName}"
     haleArchive = new File(new File(System.getProperty("java.io.tmpdir")), "${rootProject.name}/${haleReleaseName}")
 }
 
