@@ -15,12 +15,12 @@
 
 package de.ii.xtraserver.webapi.hale.io.writer;
 
-import de.ii.ldproxy.cfg.LdproxyCfg;
+import de.ii.ldproxy.cfg.LdproxyCfgWriter;
 import de.ii.ogcapi.features.geojson.domain.ImmutableGeoJsonConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2;
-import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
+import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
@@ -51,12 +51,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
 import org.apache.commons.lang3.StringUtils;
@@ -64,13 +59,11 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.opengis.filter.Filter;
 
-/**
- * Translates an Alignment to a XtraServer Web API Mapping.
- */
+/** Translates an Alignment to a XtraServer Web API Mapping. */
 public class XtraServerWebApiMappingGenerator {
 
   private final Alignment alignment;
-  private final LdproxyCfg ldproxyCfg;
+  private final LdproxyCfgWriter ldproxyCfg;
   private final MappingContext mappingContext;
   private final TypeTransformationHandlerFactory typeHandlerFactory;
   private final PropertyTransformationHandlerFactory propertyHandlerFactory;
@@ -80,29 +73,41 @@ public class XtraServerWebApiMappingGenerator {
   /**
    * Constructor
    *
-   * @param alignment         the Alignment with all cells
+   * @param alignment the Alignment with all cells
    * @param targetSchemaSpace the target schema
-   * @param progress          Progress indicator
+   * @param progress Progress indicator
    * @param projectProperties project transformation properties
-   * @param projectInfo       project info
-   * @param projectLocation   project file
-   * @param reporter          reporter
+   * @param projectInfo project info
+   * @param projectLocation project file
+   * @param reporter reporter
    */
-  public XtraServerWebApiMappingGenerator(final Alignment alignment,
-      final SchemaSpace targetSchemaSpace, final ProgressIndicator progress,
-      final Map<String, Value> projectProperties, final ProjectInfo projectInfo,
-      final URI projectLocation, final IOReporter reporter) throws IOException {
+  public XtraServerWebApiMappingGenerator(
+      final Alignment alignment,
+      final SchemaSpace targetSchemaSpace,
+      final ProgressIndicator progress,
+      final Map<String, Value> projectProperties,
+      final ProjectInfo projectInfo,
+      final URI projectLocation,
+      final IOReporter reporter)
+      throws IOException {
 
     this.alignment = alignment;
     Path dataDir = createTempDataDir();
-    this.ldproxyCfg = new LdproxyCfg(dataDir);
-    this.mappingContext = new MappingContext(alignment, targetSchemaSpace, projectProperties,
-        projectInfo, projectLocation, reporter, ldproxyCfg);
+    this.ldproxyCfg = LdproxyCfgWriter.create(dataDir);
+    this.mappingContext =
+        new MappingContext(
+            alignment,
+            targetSchemaSpace,
+            projectProperties,
+            projectInfo,
+            projectLocation,
+            reporter,
+            ldproxyCfg);
     this.typeHandlerFactory = TypeTransformationHandler.createFactory(mappingContext);
     this.propertyHandlerFactory = PropertyTransformationHandler.createFactory(mappingContext);
 
     /* Calculate the total work units for the progress indicator (+1 for
-     writing the file)*/
+    writing the file)*/
     int c = 1;
     for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
       c += this.alignment.getPropertyCells(typeCell).size() + 1;
@@ -117,8 +122,8 @@ public class XtraServerWebApiMappingGenerator {
           String xsdLocation = xsd.getLocation().toString();
           if (StringUtils.isNotBlank(xsdLocation)) {
             try {
-              String xsdFileName = xsdLocation.substring(xsdLocation.lastIndexOf("/") + 1,
-                  xsdLocation.length() - 4);
+              String xsdFileName =
+                  xsdLocation.substring(xsdLocation.lastIndexOf("/") + 1, xsdLocation.length() - 4);
               if (StringUtils.isNotBlank(xsdFileName)) {
                 inspireSchemaNameTmp = xsdFileName;
                 break;
@@ -136,99 +141,109 @@ public class XtraServerWebApiMappingGenerator {
   /**
    * Generates the Mapping object
    *
-   * @param reporter   status reporter
+   * @param reporter status reporter
    * @param providerId
    * @throws UnsupportedTransformationException if the transformation of types or properties is not
-   *                                            supported
+   *     supported
    */
-  public void generate(final IOReporter reporter, final OutputStream out, String providerId,
+  public void generate(
+      final IOReporter reporter,
+      final OutputStream out,
+      String providerId,
       boolean onlyProviderFile)
       throws UnsupportedTransformationException, IOException {
 
-    for (final Cell typeCell : this.alignment.getActiveTypeCells()) {
+    Map<QName, List<Cell>> sortedTypeCells =
+        this.alignment.getActiveTypeCells().stream()
+            .collect(
+                Collectors.groupingBy(
+                    XtraServerMappingUtils::getFeatureTypeName,
+                    LinkedHashMap::new,
+                    Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        cells ->
+                            cells.stream()
+                                .sorted(Comparator.comparing(Cell::getPriority))
+                                .collect(Collectors.toList()))));
 
-      // TODO - FUTURE WORK: sort type cells based upon their priority
-//      .stream()
-//        .sorted(Comparator.comparing(Cell::getPriority))
-//        .collect(Collectors.toList())
+    for (final QName featureTypeQName : sortedTypeCells.keySet()) {
+      for (final Cell typeCell : sortedTypeCells.get(featureTypeQName)) {
+        /* Create FeatureTypeMapping from the type cells. The Mapping tables
+        are created and added by the Type Handlers*/
+        this.progress.setCurrentTask("Transforming type");
 
-      final String typeTransformationIdentifier = typeCell.getTransformationIdentifier();
+        final TypeTransformationHandler typeHandler =
+            typeHandlerFactory.create(typeCell.getTransformationIdentifier());
 
-            /* Create FeatureTypeMapping from the type cells. The Mapping tables
-       are created and added by the Type Handlers*/
-      this.progress.setCurrentTask("Transforming type");
-
-      final TypeTransformationHandler typeHandler = typeHandlerFactory
-          .create(typeTransformationIdentifier);
-
-      if (typeHandler != null) {
-
-        // TODO - FUTURE WORK - multiple mappings per feature type currently not supported
-        QName featureTypeQName = XtraServerMappingUtils.getFeatureTypeName(typeCell);
-        if (this.mappingContext.getFeatureTypeMappings().containsKey(featureTypeQName.toString())) {
-          mappingContext.getReporter().warn(
-              "Multiple mappings with the same target type are currently not supported. Only the first mapping for Feature Type {0} was created.",
-              featureTypeQName.getLocalPart());
+        if (Objects.isNull(typeHandler)) {
           this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
-
-        } else {
-
-          // PROCESSING
-
-          ImmutableFeatureSchema.Builder typeBuilder = typeHandler.handle(typeCell);
-          this.progress.setCurrentTask(
-              "Mapping values for Feature Type " + mappingContext.getFeatureTypeName());
-
-          // Add MappingValues from the type cell's property cells
-          for (final Cell propertyCell : this.alignment.getPropertyCells(typeCell)
-              .stream()
-              .sorted(Comparator.comparing(Cell::getPriority))
-              .collect(Collectors.toList())) {
-
-            final String propertyTransformationIdentifier = propertyCell
-                .getTransformationIdentifier();
-            final PropertyTransformationHandler propertyHandler = propertyHandlerFactory
-                .create(propertyTransformationIdentifier);
-            if (propertyHandler != null) {
-              propertyHandler.handle(new CellParentWrapper(typeCell, propertyCell));
-            }
-            this.progress.advance(1);
-          }
-
-          // POSTPROCESSING
-
-          if (typeBuilder != null) {
-            EntityDefinition mainEntityDefinition = this.mappingContext.getMainEntityDefinition();
-            TypeDefinition mainTypeDefinition = mainEntityDefinition.getType();
-            String mainTableName = mainTypeDefinition.getName().getLocalPart();
-            String sourcePath = "/" + mainTableName;
-
-            // primary key is currently not used
-//            String primaryKey = TypeTransformationHandler.getPrimaryKey(mainTypeDefinition);
-//            if(StringUtils.isNotBlank(primaryKey)) {
-//              sourcePath += "{primaryKey="+primaryKey+"}";
-//            }
-            if (this.mappingContext.getMainSortKeyField() != null) {
-              sourcePath += "{sortKey=" + this.mappingContext.getMainSortKeyField() + "}";
-            }
-            if (mainEntityDefinition.getFilter() != null) {
-              try {
-                // TODO - Filter auf DB-Spalten noch nicht möglich? Remove-Transformation nutzen?
-                AbstractGeotoolsFilter filter = (AbstractGeotoolsFilter) mainEntityDefinition.getFilter();
-                Filter qualifiedFilter = ECQL.toFilter(filter.getFilterTerm());
-                // Praktisch - die Namen der im Filter genutzten Attribute kann man einfach finden
-//                String[] attNamesInFilter = DataUtilities.attributeNames(qualifiedFilter);
-                sourcePath += "{filter=" + ECQL.toCQL(qualifiedFilter) + "}";
-              } catch (ClassCastException | CQLException e) {
-                // ignore
-              }
-            }
-
-            typeBuilder.sourcePath(sourcePath);
-          }
+          continue;
         }
-      } else {
-        this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
+        // TODO - FUTURE WORK - multiple mappings per feature type currently not supported
+        /*if (this.mappingContext.getFeatureTypeMappings().containsKey(featureTypeQName.toString())) {
+          mappingContext
+              .getReporter()
+              .warn(
+                  "Multiple mappings with the same target type are currently not supported. Only the first mapping for Feature Type {0} was created.",
+                  featureTypeQName.getLocalPart());
+          this.progress.advance(this.alignment.getPropertyCells(typeCell).size());
+          continue;
+        }*/
+        // PROCESSING
+
+        ImmutableFeatureSchema.Builder typeBuilder = typeHandler.handle(typeCell);
+        this.progress.setCurrentTask(
+            "Mapping values for Feature Type " + mappingContext.getFeatureTypeName());
+
+        List<? extends Cell> sortedPropertyCells =
+            this.alignment.getPropertyCells(typeCell).stream()
+                .sorted(Comparator.comparing(Cell::getPriority))
+                .collect(Collectors.toList());
+
+        // Add MappingValues from the type cell's property cells
+        for (final Cell propertyCell : sortedPropertyCells) {
+          final PropertyTransformationHandler propertyHandler =
+              propertyHandlerFactory.create(propertyCell.getTransformationIdentifier());
+          if (propertyHandler != null) {
+            propertyHandler.handle(new CellParentWrapper(typeCell, propertyCell));
+          }
+          this.progress.advance(1);
+        }
+
+        // POSTPROCESSING
+
+        if (typeBuilder != null) {
+          EntityDefinition mainEntityDefinition = this.mappingContext.getMainEntityDefinition();
+          TypeDefinition mainTypeDefinition = mainEntityDefinition.getType();
+          String mainTableName = mainTypeDefinition.getName().getLocalPart();
+          String sourcePath = "/" + mainTableName;
+
+          // primary key is currently not used
+          //            String primaryKey =
+          // TypeTransformationHandler.getPrimaryKey(mainTypeDefinition);
+          //            if(StringUtils.isNotBlank(primaryKey)) {
+          //              sourcePath += "{primaryKey="+primaryKey+"}";
+          //            }
+          if (this.mappingContext.getMainSortKeyField() != null) {
+            sourcePath += "{sortKey=" + this.mappingContext.getMainSortKeyField() + "}";
+          }
+          if (mainEntityDefinition.getFilter() != null) {
+            try {
+              // TODO - Filter auf DB-Spalten noch nicht möglich? Remove-Transformation nutzen?
+              AbstractGeotoolsFilter filter =
+                  (AbstractGeotoolsFilter) mainEntityDefinition.getFilter();
+              Filter qualifiedFilter = ECQL.toFilter(filter.getFilterTerm());
+              // Praktisch - die Namen der im Filter genutzten Attribute kann man einfach finden
+              //                String[] attNamesInFilter =
+              // DataUtilities.attributeNames(qualifiedFilter);
+              sourcePath += "{filter=" + ECQL.toCQL(qualifiedFilter) + "}";
+            } catch (ClassCastException | CQLException e) {
+              // ignore
+            }
+          }
+
+          typeBuilder.sourcePath(sourcePath);
+        }
       }
     }
 
@@ -238,55 +253,64 @@ public class XtraServerWebApiMappingGenerator {
       ldproxyCfg.writeEntity(providerData, out);
     } else {
 
-      ldproxyCfg.addEntity(providerData);
+      ldproxyCfg.writeEntity(providerData);
 
       ImmutableOgcApiDataV2.Builder apiBuilder = ldproxyCfg.builder().entity().api();
       apiBuilder.id(providerData.getId()).entityStorageVersion(2).serviceType("OGC_API");
-      apiBuilder.label("${" + providerId + ".service.label:-INSPIRE " + (
-          StringUtils.isNotBlank(this.inspireSchemaName) ? this.inspireSchemaName : providerId)
-          + "}");
+      apiBuilder.label(
+          "${"
+              + providerId
+              + ".service.label:-INSPIRE "
+              + (StringUtils.isNotBlank(this.inspireSchemaName)
+                  ? this.inspireSchemaName
+                  : providerId)
+              + "}");
 
       // Konfigurieren der Abflachung
-      ImmutableGeoJsonConfiguration.Builder gjBuilder = ldproxyCfg.builder().ogcApiExtension().geoJson();
+      ImmutableGeoJsonConfiguration.Builder gjBuilder =
+          ldproxyCfg.builder().ogcApiExtension().geoJson();
       List<PropertyTransformation> geoJsonApiTransformations = new ArrayList<>();
-      ImmutablePropertyTransformation.Builder flattenTrfBuilder = new ImmutablePropertyTransformation.Builder();
+      ImmutablePropertyTransformation.Builder flattenTrfBuilder =
+          new ImmutablePropertyTransformation.Builder();
       flattenTrfBuilder.flatten("_");
       geoJsonApiTransformations.add(flattenTrfBuilder.build());
-      gjBuilder.putTransformations("*",geoJsonApiTransformations);
+      gjBuilder.putTransformations("*", geoJsonApiTransformations);
       apiBuilder.addExtensions(gjBuilder.build());
 
       // create service collections (with id, label and description per provider type)
       SortedMap<String, FeatureTypeConfigurationOgcApi> serviceCollDefsMap = new TreeMap<>();
       for (FeatureSchema providerType : providerData.getTypes().values()) {
-        ImmutableFeatureTypeConfigurationOgcApi.Builder serviceCollDefBuilder = new ImmutableFeatureTypeConfigurationOgcApi.Builder()
-            .id(providerType.getName()).description(providerType.getDescription());
-        if(providerType.getLabel().isPresent()) {
+        ImmutableFeatureTypeConfigurationOgcApi.Builder serviceCollDefBuilder =
+            new ImmutableFeatureTypeConfigurationOgcApi.Builder()
+                .id(providerType.getName())
+                .description(providerType.getDescription());
+        if (providerType.getLabel().isPresent()) {
           serviceCollDefBuilder.label(providerType.getLabel().get());
         }
-        serviceCollDefsMap.put(providerType.getName(),serviceCollDefBuilder.build());
+        serviceCollDefsMap.put(providerType.getName(), serviceCollDefBuilder.build());
       }
       apiBuilder.collections(serviceCollDefsMap);
 
-      ldproxyCfg.addEntity(apiBuilder.build());
+      ldproxyCfg.writeEntity(apiBuilder.build());
 
       // write codelist entities stored in the mapping context
-      List<ImmutableCodelistData> codelists = mappingContext.getCodeLists();
-      for (ImmutableCodelistData codelist : codelists) {
-        ldproxyCfg.addEntity(codelist);
+      Map<String, Codelist> codelists = mappingContext.getCodeLists();
+      for (String id : codelists.keySet()) {
+        ldproxyCfg.writeValue(codelists.get(id), id);
       }
 
       ldproxyCfg.writeZippedStore(out);
     }
   }
 
-//  /**
-//   * Return all property paths for which no association target could be found in the schema.
-//   *
-//   * @return list of properties with missing association targets
-//   */
-//  public Set<String> getMissingAssociationTargets() {
-//    return this.mappingContext.getMissingAssociationTargets();
-//  }
+  //  /**
+  //   * Return all property paths for which no association target could be found in the schema.
+  //   *
+  //   * @return list of properties with missing association targets
+  //   */
+  //  public Set<String> getMissingAssociationTargets() {
+  //    return this.mappingContext.getMissingAssociationTargets();
+  //  }
 
   private Path createTempDataDir() throws IOException {
     Path dataDir = Files.createTempDirectory("ldproxy-cfg");
@@ -307,6 +331,4 @@ public class XtraServerWebApiMappingGenerator {
 
     return dataDir;
   }
-
 }
-

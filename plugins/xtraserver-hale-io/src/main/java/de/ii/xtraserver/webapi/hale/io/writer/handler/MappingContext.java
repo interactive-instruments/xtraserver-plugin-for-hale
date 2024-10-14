@@ -16,9 +16,8 @@
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.collect.ImmutableList;
-import de.ii.ldproxy.cfg.LdproxyCfg;
-import de.ii.xtraplatform.codelists.domain.ImmutableCodelistData;
-import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
+import de.ii.ldproxy.cfg.LdproxyCfgWriter;
+import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
@@ -39,7 +38,6 @@ import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,7 +49,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.ActionMap;
 import javax.xml.namespace.QName;
 
 /**
@@ -73,7 +70,7 @@ public final class MappingContext {
    */
   private final Map<String, ImmutableFeatureSchema.Builder> featureTypeMappings = new LinkedHashMap<>();
 
-  private final List<ImmutableCodelistData> codeLists = new ArrayList<>();
+  private final Map<String, Codelist> codeLists = new LinkedHashMap<>();
 
   private ImmutableFeatureSchema.Builder currentFeatureTypeMapping = null;
   private String currentFeatureTypeMappingName = null;
@@ -92,7 +89,7 @@ public final class MappingContext {
   private final ProjectInfo projectInfo;
   private final URI projectLocation;
   private final IOReporter reporter;
-  private final LdproxyCfg ldproxyCfg;
+  private final LdproxyCfgWriter ldproxyCfg;
   private Map<Property,Builder> currentFirstObjectBuilderMappings = new HashMap<>();
   private Map<String,List<PropertyTransformationHandler>> currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
 
@@ -108,12 +105,12 @@ public final class MappingContext {
    * @param ldproxyCfg               ldproxyCfg
    */
   public MappingContext(
-      final Alignment alignment,
-      final SchemaSpace schemaspace,
-      final Map<String, Value> transformationProperties,
-      final ProjectInfo projectInfo,
-      final URI projectLocation,
-      final IOReporter reporter, LdproxyCfg ldproxyCfg) {
+          final Alignment alignment,
+          final SchemaSpace schemaspace,
+          final Map<String, Value> transformationProperties,
+          final ProjectInfo projectInfo,
+          final URI projectLocation,
+          final IOReporter reporter, LdproxyCfgWriter ldproxyCfg) {
     this.alignment = Objects.requireNonNull(alignment);
     this.transformationProperties = Objects.requireNonNull(transformationProperties);
 
@@ -158,12 +155,12 @@ public final class MappingContext {
     return this.featureTypeMappings;
   }
 
-  public List<ImmutableCodelistData> getCodeLists() {
+  public Map<String,Codelist> getCodeLists() {
     return this.codeLists;
   }
 
-  public void addCodeList(ImmutableCodelistData cl) {
-    this.codeLists.add(cl);
+  public void addCodeList(String id, Codelist cl) {
+    this.codeLists.put(id, cl);
   }
 
   /**
@@ -176,17 +173,28 @@ public final class MappingContext {
 
     buildAndClearCurrentInfos();
 
+    this.currentFeatureTypeMappingName = featureTypeName.getLocalPart();
+
     final String key =
         Objects.requireNonNull(featureTypeName, "Feature Type name is null").toString();
     currentFeatureTypeMapping = featureTypeMappings.get(key);
-    if (currentFeatureTypeMapping == null) {
-      currentFeatureTypeMapping =
-          new ImmutableFeatureSchema.Builder().name(
+
+    if (currentFeatureTypeMapping != null) {
+      FeatureSchema tmpSchema = currentFeatureTypeMapping.build();
+      if (!tmpSchema.getPropertyMap().isEmpty()) {
+        currentFeatureTypeMapping.addConcatBuilder().name(tmpSchema.getName()).type(Type.OBJECT).sourcePath(tmpSchema.getSourcePath()).propertyMap(tmpSchema.getPropertyMap());
+      }
+      currentFeatureTypeMapping.type(Type.OBJECT).propertyMap(Map.of()).sourcePath(Optional.empty());
+      Builder subMapping = currentFeatureTypeMapping.addConcatBuilder().name(
               featureTypeName.getLocalPart().toLowerCase(Locale.ENGLISH)).type(Type.OBJECT);
-      featureTypeMappings.put(key, currentFeatureTypeMapping);
+
+      return subMapping;
     }
 
-    this.currentFeatureTypeMappingName = featureTypeName.getLocalPart();
+    currentFeatureTypeMapping =
+            new ImmutableFeatureSchema.Builder().name(
+                    featureTypeName.getLocalPart().toLowerCase(Locale.ENGLISH)).type(Type.OBJECT);
+    featureTypeMappings.put(key, currentFeatureTypeMapping);
 
     return currentFeatureTypeMapping;
   }
@@ -229,6 +237,12 @@ public final class MappingContext {
   }
 
   public ImmutableFeatureSchema.Builder getFeatureBuilder() {
+    List<Builder> subMappings = currentFeatureTypeMapping.concatBuilders();
+
+    if (!subMappings.isEmpty()) {
+      return subMappings.get(subMappings.size() - 1);
+    }
+
     return this.currentFeatureTypeMapping;
   }
 
@@ -309,7 +323,7 @@ public final class MappingContext {
     providerData
         .labelTemplate("{{value}}{{unit | prepend:' [' | append:']'}}")
         .connectionInfoBuilder()
-        .dialect(Dialect.PGIS)
+        .dialect(Dialect.PGIS.name())
         .host(String.format("${%s.db.host}", id))
         .database(String.format("${%s.db.name}", id))
         .user(String.format("${%s.db.user}", id))
@@ -401,7 +415,7 @@ public final class MappingContext {
     return result;
   }
 
-  public LdproxyCfg getLdproxyCfg() {
+  public LdproxyCfgWriter getLdproxyCfg() {
     return this.ldproxyCfg;
   }
 
