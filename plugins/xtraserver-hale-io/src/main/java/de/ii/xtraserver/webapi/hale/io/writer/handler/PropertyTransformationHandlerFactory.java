@@ -55,7 +55,7 @@ public class PropertyTransformationHandlerFactory
 				put(supportedTypes[i++], new RenameHandler(mappingContext));
 				put(supportedTypes[i++], new MathematicalExpressionHandler(mappingContext));
 				put(supportedTypes[i++], new AssignHandler(mappingContext));
-				put(supportedTypes[i++], new AssignHandler(mappingContext));
+				put(supportedTypes[i++], new FormattedStringHandler(mappingContext));
 				put(supportedTypes[i++], new FormattedStringHandler(mappingContext));
 				put(supportedTypes[i++], new RegexHandler(mappingContext));
 				put(supportedTypes[i++], new ClassificationMappingHandler(mappingContext));

@@ -22,7 +22,6 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
-import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
@@ -34,13 +33,11 @@ import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Transforms the {@link AssignFunction} to a {@link FeatureSchema}
- */
+/** Transforms the {@link AssignFunction} to a {@link FeatureSchema} */
 class AssignHandler extends AbstractPropertyTransformationHandler {
 
-//  private final static String XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
-//  private final static String NIL_REASON = "@nilReason";
+  //  private final static String XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
+  //  private final static String NIL_REASON = "@nilReason";
 
   AssignHandler(final MappingContext mappingContext) {
     super(mappingContext);
@@ -50,22 +47,20 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
    * @see TransformationHandler#handle(Cell)
    */
   @Override
-  public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-      final Property targetProperty) {
+  public Optional<ImmutableFeatureSchema.Builder> doHandle(
+      final Cell propertyCell, final Property targetProperty) {
 
     PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
     String lastTgtPropName = pdTgtLast.getName().getLocalPart();
     TypeDefinition tgtLastTypeDef = pdTgtLast.getPropertyType();
 
-    if (propertyCell.getTransformationIdentifier().equals(AssignFunction.ID_BOUND)
-        && !isGmlUomProperty(pdTgtLast)) {
-      // TODO - FUTURE WORK (especially the case of of Assign (Bound) with additional Assign as fallback -> choice)
+    if (!isGmlUomProperty(pdTgtLast)) {
       return Optional.empty();
     }
 
     // Assign constant value from parameters
-    final ListMultimap<String, ParameterValue> parameters = propertyCell
-        .getTransformationParameters();
+    final ListMultimap<String, ParameterValue> parameters =
+        propertyCell.getTransformationParameters();
     final List<ParameterValue> valueParams = parameters.get(PARAMETER_VALUE);
     String value = valueParams.get(0).getStringRepresentation();
     value = mappingContext.resolveProjectVars(value);
@@ -76,12 +71,15 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
      */
     // TODO - check that codeSpace is an XML attribute (like for nilReason)?
     if (lastTgtPropName.equals("codeSpace") && value.equals("http://inspire.ec.europa.eu/ids")) {
-//			mappingContext.getReporter().info("Ignoring Assign relationship for target property 'codeSpace' with value 'http://inspire.ec.europa.eu/ids'.");
+      //			mappingContext.getReporter().info("Ignoring Assign relationship for target property
+      // 'codeSpace' with value 'http://inspire.ec.europa.eu/ids'.");
       return Optional.empty();
     }
 
     // handle cases of ISO 19139 encoded, code list valued property elements
-    if (tgtLastTypeDef.getName().toString()
+    if (tgtLastTypeDef
+        .getName()
+        .toString()
         .equalsIgnoreCase("{http://www.isotc211.org/2005/gco}CodeListValue_Type")) {
       // The textual value of an ISO 19139 encoded, code list valued property element.
       // In AdV-INSPIRE-alignments typically a copy of the value for @codeListValue.
@@ -91,8 +89,8 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     }
 
     // property creation only after ignore-checks (see above):
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
-        null);
+    ImmutableFeatureSchema.Builder propertyBuilder =
+        buildPropertyPath(propertyCell, targetProperty);
 
     if (isGmlUomProperty(pdTgtLast)) {
 
@@ -102,8 +100,9 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
 
       propertyBuilder.constantValue(value);
 
-      SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(pdTgtLast.getPropertyType(),
-          this.mappingContext.getReporter());
+      SchemaBase.Type baseType =
+          XtraServerWebApiUtil.getWebApiType(
+              pdTgtLast.getPropertyType(), this.mappingContext.getReporter());
       if (isMultiValuedPropertyPerSchemaDefinition(pdTgtLast)) {
         propertyBuilder.type(Type.VALUE_ARRAY);
         propertyBuilder.valueType(baseType);

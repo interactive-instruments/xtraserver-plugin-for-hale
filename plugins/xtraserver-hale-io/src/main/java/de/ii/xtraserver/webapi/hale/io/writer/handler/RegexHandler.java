@@ -69,22 +69,6 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
     }
     final String outputFormat = outputFormatParam.get(0).as(String.class);
 
-    Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
-        sourceProperty.getDefinition());
-
-    PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
-    TypeDefinition td = pd.getPropertyType();
-
-    // check if the property has already been established
-    // TODO - FUTURE WORK (multiplicity not supported yet)
-    if (!propertyBuilder.build().getEffectiveSourcePaths().isEmpty()) {
-      mappingContext.getReporter().warn(
-          "Multiple 'Regex Analysis'-relations for same target property ({0}) not supported yet. Only the first encountered relationship will be encoded. Ignoring regex {1}.",
-          fullDisplayPath(targetProperty), regex);
-      return Optional.of(propertyBuilder);
-    }
-
     // NOTE: the following replaceAll uses the capture group mechanism
     String newOutputFormat = outputFormat.replaceAll("\\{(\\d+)\\}", "\\$$1");
 
@@ -98,31 +82,44 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
       }
     }
 
-    if (isObjectReference) {
+    Optional<String> refType = Optional.empty();
 
+    if (isObjectReference) {
       // get feature type name from string pattern
       Pattern typePattern = Pattern.compile("^#?(\\w+_)(.*)$");
       Matcher mtp = typePattern.matcher(newOutputFormat);
 
       if (mtp.matches()) {
 
-        String typeName = mtp.group(1);
+        String typeName = mtp.group(1).toLowerCase(Locale.ENGLISH);
         if (typeName.endsWith("_")) {
           typeName = StringUtils.chop(typeName);
         }
 
-        String part2 = mtp.group(2);
+        refType = Optional.of(typeName);
 
-        // create service URL
-        newOutputFormat =
-            "{{serviceUrl}}/collections/" + typeName.toLowerCase(Locale.ENGLISH) + "/items/"
-                + part2;
+        newOutputFormat = mtp.group(2);
 
       } else {
         mappingContext.getReporter().warn("'Regex Analysis'-relation for object reference encountered." +
                 "The output format - {0} - does not match the expected format. Object reference was not created.",
             outputFormat);
       }
+    }
+
+    Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty, refType);
+
+    PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
+    TypeDefinition td = pd.getPropertyType();
+
+    // check if the property has already been established
+    // TODO - FUTURE WORK (multiplicity not supported yet)
+    if (!propertyBuilder.build().getEffectiveSourcePaths().isEmpty()) {
+      mappingContext.getReporter().warn(
+              "Multiple 'Regex Analysis'-relations for same target property ({0}) not supported yet. Only the first encountered relationship will be encoded. Ignoring regex {1}.",
+              fullDisplayPath(targetProperty), regex);
+      return Optional.of(propertyBuilder);
     }
 
     Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
