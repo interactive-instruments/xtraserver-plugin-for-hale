@@ -21,6 +21,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Role;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
@@ -49,7 +50,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
 
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,sourceProperty.getDefinition());
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
 
     Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
         sourceProperty.getDefinition());
@@ -81,7 +82,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
    * @param targetProperty  the target of a property relation (as provided to property handlers)
    * @param sourcePath      the source path to set/add
    */
-  private void setTypesAndSourcePaths(Builder propertyBuilder, Property targetProperty,
+  protected void setTypesAndSourcePaths(Builder propertyBuilder, Property targetProperty,
       String sourcePath) {
 
     PropertyDefinition targetPd = getLastPropertyDefinition(targetProperty);
@@ -93,6 +94,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
     // Would a postprocessing transformation be a solution?
     if(baseType == Type.GEOMETRY) {
       propertyBuilder.role(Role.PRIMARY_GEOMETRY);
+      propertyBuilder.geometryType(SimpleFeatureGeometry.ANY);
     }
 
     // build the current schema structure for inspection
