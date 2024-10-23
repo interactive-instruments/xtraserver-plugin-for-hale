@@ -62,6 +62,9 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
 		final ListMultimap<String, ParameterValue> parameters = propertyCell
 				.getTransformationParameters();
 		final List<ParameterValue> valueParams = parameters.get(PARAMETER_VALUE);
+		if (valueParams.isEmpty()) {
+			throw new IllegalArgumentException("Value for Assign is not set");
+		}
 		final String value = valueParams.get(0).getStringRepresentation();
 
 		final List<QName> path = buildPath(targetProperty.getDefinition().getPropertyPath());
