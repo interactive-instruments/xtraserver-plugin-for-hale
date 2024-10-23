@@ -61,8 +61,7 @@ class CustomFunctionAdvToIdentifier extends FormattedStringHandler {
 		value += mappingContext.getFeatureTypeName() + "_{{value}}";
 
 		Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-		ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
-				sourceProperty.getDefinition());
+		ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
 
 		PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
 		TypeDefinition td = pd.getPropertyType();

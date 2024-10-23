@@ -19,7 +19,6 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
-import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Property;
 import eu.esdihumboldt.hale.common.core.io.Value;
@@ -56,8 +55,8 @@ class CustomFunctionAdvToNamespace extends FormattedStringHandler {
 			String value = inspireNamespace.as(String.class);
 			value = reformatVariable(value);
 
-			ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
-					null);
+			ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty
+			);
 
 			propertyBuilder.constantValue(value);
 

@@ -50,8 +50,7 @@ class CustomFunctionAdvToLocalId extends FormattedStringHandler {
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
 
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
-        sourceProperty.getDefinition());
+    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
 
     String sourcePropertyName = propertyName(sourceProperty);
 

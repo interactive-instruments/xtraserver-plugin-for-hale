@@ -23,11 +23,7 @@ import de.ii.xtraplatform.features.domain.SchemaBase.Role;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.CellParentWrapper;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
-import eu.esdihumboldt.hale.common.align.model.Cell;
-import eu.esdihumboldt.hale.common.align.model.ChildContext;
-import eu.esdihumboldt.hale.common.align.model.ParameterValue;
-import eu.esdihumboldt.hale.common.align.model.Property;
-import eu.esdihumboldt.hale.common.align.model.impl.PropertyEntityDefinition;
+import eu.esdihumboldt.hale.common.align.model.*;
 import eu.esdihumboldt.hale.common.schema.model.ChildDefinition;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
@@ -36,19 +32,14 @@ import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
 import eu.esdihumboldt.hale.common.schema.model.impl.DefaultGroupPropertyDefinition;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAttributeFlag;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.ws.commons.schema.XmlSchemaAppInfo;
 import org.w3c.dom.Node;
 
-/**
- * Abstract Property Transformation Handler
- */
+/** Abstract Property Transformation Handler */
 abstract class AbstractPropertyTransformationHandler implements PropertyTransformationHandler {
 
   protected final MappingContext mappingContext;
@@ -57,40 +48,42 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     this.mappingContext = mappingContext;
   }
 
-//  protected List<QName> buildPath(final List<ChildContext> path) {
-//    return buildPath(path, false);
-//  }
+  //  protected List<QName> buildPath(final List<ChildContext> path) {
+  //    return buildPath(path, false);
+  //  }
 
-//  protected List<QName> buildPathWithoutLast(final List<ChildContext> path) {
-//    return buildPath(path, true);
-//  }
+  //  protected List<QName> buildPathWithoutLast(final List<ChildContext> path) {
+  //    return buildPath(path, true);
+  //  }
 
-//  protected List<QName> buildPath(final List<ChildContext> path, final boolean withoutLast) {
-//    return path.stream().map(segment -> segment.getChild().asProperty())
-//        .filter(Objects::nonNull).map(toPropertyNameWithAttributePrefix())
-//        .limit(withoutLast ? path.size() - 1 : path.size()).collect(Collectors.toList());
-//  }
+  //  protected List<QName> buildPath(final List<ChildContext> path, final boolean withoutLast) {
+  //    return path.stream().map(segment -> segment.getChild().asProperty())
+  //        .filter(Objects::nonNull).map(toPropertyNameWithAttributePrefix())
+  //        .limit(withoutLast ? path.size() - 1 : path.size()).collect(Collectors.toList());
+  //  }
 
   /**
    * Creates a string-representation of the full (property) path for the given property. The result
    * can, for example, be used in report messages.
    *
    * @param property the property for which to create the display path, typically the source or
-   *                 target property of a property relationship
+   *     target property of a property relationship
    * @return local names of the path properties, dot-concatenated
    */
   protected String fullDisplayPath(final Property property) {
     final List<ChildContext> path = property.getDefinition().getPropertyPath();
-    return path.stream().map(segment -> segment.getChild().asProperty())
-        .filter(Objects::nonNull).map(segment -> segment.getName().getLocalPart())
+    return path.stream()
+        .map(segment -> segment.getChild().asProperty())
+        .filter(Objects::nonNull)
+        .map(segment -> segment.getName().getLocalPart())
         .collect(Collectors.joining("."));
   }
 
-//  private Function<PropertyDefinition, QName> toPropertyNameWithAttributePrefix() {
-//    return property -> property.getConstraint(XmlAttributeFlag.class).isEnabled() ? new QName(
-//        property.getName().getNamespaceURI(), "@" + property.getName().getLocalPart())
-//        : property.getName();
-//  }
+  //  private Function<PropertyDefinition, QName> toPropertyNameWithAttributePrefix() {
+  //    return property -> property.getConstraint(XmlAttributeFlag.class).isEnabled() ? new QName(
+  //        property.getName().getNamespaceURI(), "@" + property.getName().getLocalPart())
+  //        : property.getName();
+  //  }
 
   /**
    * @param path
@@ -111,8 +104,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     return propertyName(p.getDefinition().getPropertyPath());
   }
 
-  protected static String getSingleProperty(final ListMultimap<String, ParameterValue> parameters,
-      final String name) {
+  protected static String getSingleProperty(
+      final ListMultimap<String, ParameterValue> parameters, final String name) {
     if (parameters != null) {
       final List<ParameterValue> parameterValues = parameters.get(name);
       if (parameterValues != null && !parameterValues.isEmpty()) {
@@ -131,7 +124,10 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
    */
   protected Optional<String> getAssociationTarget(final Cell propertyCell) {
     final Property targetProperty = XtraServerMappingUtils.getTargetProperty(propertyCell);
-    if (targetProperty.getDefinition().getDefinition().getConstraint(Reference.class)
+    if (targetProperty
+        .getDefinition()
+        .getDefinition()
+        .getConstraint(Reference.class)
         .isReference()) {
       final String associationTargetRef = getTargetFromSchema(targetProperty);
       if (associationTargetRef != null) {
@@ -153,13 +149,13 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
       return null;
     }
     int refElemIndex = Math.max(0, targetProperty.getDefinition().getPropertyPath().size() - 2);
-    final ChildDefinition<?> firstChild = targetProperty.getDefinition().getPropertyPath()
-        .get(refElemIndex).getChild();
+    final ChildDefinition<?> firstChild =
+        targetProperty.getDefinition().getPropertyPath().get(refElemIndex).getChild();
     if (!(firstChild instanceof PropertyDefinition)) {
       return null;
     }
-    final XmlAppInfo appInfoAnnotation = ((PropertyDefinition) firstChild)
-        .getConstraint(XmlAppInfo.class);
+    final XmlAppInfo appInfoAnnotation =
+        ((PropertyDefinition) firstChild).getConstraint(XmlAppInfo.class);
 
     for (final XmlSchemaAppInfo appInfo : appInfoAnnotation.getAppInfos()) {
       for (int i = 0; i < appInfo.getMarkup().getLength(); i++) {
@@ -171,6 +167,31 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
       }
     }
     return null;
+  }
+
+  private Map<String, String> checkNotesForTransformationHints(Cell propertyCell) {
+    Map<String, String> hints = new HashMap<>();
+
+    if (propertyCell.getDocumentation().containsKey(null)) {
+      List<String> docs = propertyCell.getDocumentation().get(null);
+
+      if (!docs.isEmpty() && docs.get(0).contains("{{XTRASERVER:")) {
+        Matcher matcher = Pattern.compile("\\{\\{XTRASERVER:(\\w+)(?:=(.+?))?}}").matcher(docs.get(0));
+
+        while (matcher.find()) {
+          hints.put(matcher.group(1), matcher.group(2) != null ? matcher.group(2) : "true");
+        }
+      }
+      if (!docs.isEmpty() && docs.get(0).contains("{{XSWA:")) {
+        Matcher matcher = Pattern.compile("\\{\\{XSWA:(\\w+)(?:=(.+?))?}}").matcher(docs.get(0));
+
+        while (matcher.find()) {
+          hints.put(matcher.group(1), matcher.group(2) != null ? matcher.group(2) : "true");
+        }
+      }
+    }
+
+    return hints;
   }
 
   /**
@@ -185,14 +206,18 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     final Property targetProperty = XtraServerMappingUtils.getTargetProperty(propertyCell);
     final Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
 
-    if (targetProperty == null || (sourceProperty == null && !((this instanceof AssignHandler)
-        || (this instanceof CustomFunctionAdvToNamespace)
-        || (this instanceof SqlExpressionHandler)
-        || (this instanceof FormattedStringHandler)))) {
+    if (targetProperty == null
+        || (sourceProperty == null
+            && !((this instanceof AssignHandler)
+                || (this instanceof CustomFunctionAdvToNamespace)
+                || (this instanceof SqlExpressionHandler)
+                || (this instanceof FormattedStringHandler)))) {
       CellParentWrapper cellParentWrapper = (CellParentWrapper) propertyCell;
-      mappingContext.getReporter().warn(
-          "Cell could not be exported, source or target property is not set (Table: {0}, Source: {1}, Target: {2})",
-          cellParentWrapper.getTableName(), sourceProperty, targetProperty);
+      mappingContext
+          .getReporter()
+          .warn(
+              "Cell could not be exported, source or target property is not set (Table: {0}, Source: {1}, Target: {2})",
+              cellParentWrapper.getTableName(), sourceProperty, targetProperty);
       return null;
     }
 
@@ -202,9 +227,10 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
      * Check if target property is a case to generally be ignored.
      */
     PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
-    if (pdTgtLast.getConstraint(XmlAttributeFlag.class).isEnabled() &&
-        pdTgtLast.getName().getLocalPart().equals("nilReason")) {
-//      mappingContext.getReporter().info("Ignoring relationship for target property {0}.",targetPropertyDisplayPath);
+    if (pdTgtLast.getConstraint(XmlAttributeFlag.class).isEnabled()
+        && pdTgtLast.getName().getLocalPart().equals("nilReason")) {
+      //      mappingContext.getReporter().info("Ignoring relationship for target property
+      // {0}.",targetPropertyDisplayPath);
       return null;
     }
 
@@ -213,64 +239,43 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
         this.mappingContext.getPropertyHandlersByTargetPropertyPath();
     List<PropertyTransformationHandler> propertyHandlersForTargetPropertyPath;
     if (propertyHandlersByTargetPropertyPath.containsKey(targetPropertyDisplayPath)) {
-      propertyHandlersForTargetPropertyPath = propertyHandlersByTargetPropertyPath.get(
-          targetPropertyDisplayPath);
+      propertyHandlersForTargetPropertyPath =
+          propertyHandlersByTargetPropertyPath.get(targetPropertyDisplayPath);
     } else {
       propertyHandlersForTargetPropertyPath = new ArrayList<>();
-      propertyHandlersByTargetPropertyPath.put(targetPropertyDisplayPath,
-          propertyHandlersForTargetPropertyPath);
-    }
-
-    if (this instanceof AssignHandler && propertyHandlersForTargetPropertyPath.stream().anyMatch(
-        ph -> ph instanceof ClassificationMappingHandler)) {
-      mappingContext.getReporter().warn(
-          "Type relation for {0}: Unsupported case of 'choice' for target property {1} detected (Classification relation encoded, Assign relation ignored).",
-          this.mappingContext.getFeatureTypeName(),
-          targetPropertyDisplayPath);
-      return null;
-    } else if (this instanceof ClassificationMappingHandler
-        && propertyHandlersForTargetPropertyPath.stream().anyMatch(
-        ph -> ph instanceof AssignHandler)) {
-      mappingContext.getReporter().warn(
-          "Type relation for {0}: Unsupported case of 'choice' for target property {1} detected (Assign relation encoded, Classification relation ignored).",
-          this.mappingContext.getFeatureTypeName(),
-          targetPropertyDisplayPath);
-      return null;
-    } else if (this instanceof ClassificationMappingHandler
-        && propertyHandlersForTargetPropertyPath.stream().anyMatch(
-        ph -> ph instanceof ClassificationMappingHandler)) {
-      mappingContext.getReporter().warn(
-          "Type relation for {0}: Unsupported case of multiple Classification relations for target property {1} detected (only the first Classification relation is encoded).",
-          this.mappingContext.getFeatureTypeName(),
-          targetPropertyDisplayPath);
-      return null;
+      propertyHandlersByTargetPropertyPath.put(
+          targetPropertyDisplayPath, propertyHandlersForTargetPropertyPath);
     }
 
     // Apply the actual mapping
-    final Optional<ImmutableFeatureSchema.Builder> optionalMappingValue = doHandle(propertyCell,
-        targetProperty);
+    final Optional<ImmutableFeatureSchema.Builder> optionalMappingValue =
+        doHandle(propertyCell, targetProperty);
 
     // Keep track that this handler was applied in mappings for the target property
     propertyHandlersForTargetPropertyPath.add(this);
-
-    final String tableName = ((CellParentWrapper) propertyCell).getTableName();
 
     /* TODO: if needed - e.g. for some postprocessing (like a transformation) - we can
      * enable this again (being aware with which feature schema builder [for the leaf property]
      * the value mapping has been created).
      */
-//		optionalMappingValue.ifPresent(mappingValue -> {
-//			mappingContext.addValueMappingForTable(targetProperty, mappingValue, tableName);
-//		});
+    // final String tableName = ((CellParentWrapper) propertyCell).getTableName();
+    // optionalMappingValue.ifPresent(mappingValue -> {
+    //   mappingContext.addValueMappingForTable(targetProperty, mappingValue, tableName);
+    // });
 
     return optionalMappingValue.orElse(null);
   }
 
-  protected abstract Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-      final Property targetProperty);
+  protected abstract Optional<ImmutableFeatureSchema.Builder> doHandle(
+      final Cell propertyCell, final Property targetProperty);
 
-  protected ImmutableFeatureSchema.Builder buildPropertyPath(Property targetProperty,
-      PropertyEntityDefinition sourceProperty) {
+  protected ImmutableFeatureSchema.Builder buildPropertyPath(
+      Cell propertyCell, Property targetProperty) {
+    return buildPropertyPath(propertyCell, targetProperty, Optional.empty());
+  }
+
+  protected ImmutableFeatureSchema.Builder buildPropertyPath(
+      Cell propertyCell, Property targetProperty, Optional<String> refType) {
 
     ImmutableFeatureSchema.Builder typeBuilder = mappingContext.getFeatureBuilder();
 
@@ -281,8 +286,11 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
     // keep track of real property path, to be used as variable name in label and description
     StringBuilder propertyPathTracker = new StringBuilder();
-    propertyPathTracker.append(this.mappingContext.getFeatureTypeName().toLowerCase(Locale.ENGLISH))
+    propertyPathTracker
+        .append(this.mappingContext.getFeatureTypeName().toLowerCase(Locale.ENGLISH))
         .append(".");
+
+    Map<String, String> transformationHints = checkNotesForTransformationHints(propertyCell);
 
     ImmutableFeatureSchema.Builder firstObjectBuilder = null;
 
@@ -290,7 +298,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
       ChildDefinition cd = propertyPath.get(i).getChild();
 
-      if(cd instanceof DefaultGroupPropertyDefinition) {
+      if (cd instanceof DefaultGroupPropertyDefinition) {
         // ignore choice group definition in the path
         continue;
       }
@@ -308,20 +316,65 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
         // ignore this property when building the path
         // return the builder for the second-to-last property instead
-        // the current propertyBuilder (i.e. from the previous loop) represents that property (one before 'uom')
+        // the current propertyBuilder (i.e. from the previous loop) represents that property (one
+        // before 'uom')
         // it can be used to assign the unit
         break;
 
       } else {
+        if (refType.isPresent()
+            && pd.getName().toString().equals("{http://www.w3.org/1999/xlink}href")) {
+          pName = "id";
+        }
 
         propertyPathTracker.append(pName.toLowerCase(Locale.ENGLISH)).append(".");
 
+        boolean isNew = false;
+
         if (propMap.containsKey(pName)) {
-          propertyBuilder = propMap.get(pName);
+          if (i == propertyPath.size() - 1) {
+            ImmutableFeatureSchema.Builder prevBuilder = propMap.get(pName);
+            ImmutableFeatureSchema prev = prevBuilder.build();
+            propertyBuilder = new ImmutableFeatureSchema.Builder();
+
+            boolean isCoalesce = transformationHints.containsKey("CHOICE");
+
+            if (isCoalesce) {
+              if (prev.getCoalesce().isEmpty()) {
+                ImmutableFeatureSchema.Builder coalesce =
+                    new ImmutableFeatureSchema.Builder()
+                        .name(pName)
+                        .type(prev.getType())
+                        .addAllCoalesceBuilders(prevBuilder, propertyBuilder);
+                propMap.put(pName, coalesce);
+              } else {
+                prevBuilder.addAllCoalesceBuilders(propertyBuilder);
+              }
+            } else {
+              if (prev.getConcat().isEmpty()) {
+                ImmutableFeatureSchema.Builder concat =
+                    new ImmutableFeatureSchema.Builder()
+                        .name(pName)
+                        .type(SchemaBase.Type.VALUE_ARRAY)
+                        .valueType(prev.getType())
+                        .addAllConcatBuilders(prevBuilder, propertyBuilder);
+                propMap.put(pName, concat);
+              } else {
+                prevBuilder.addAllConcatBuilders(propertyBuilder);
+              }
+            }
+
+            isNew = true;
+          } else {
+            propertyBuilder = propMap.get(pName);
+          }
         } else {
           propertyBuilder = new ImmutableFeatureSchema.Builder();
           propMap.put(pName, propertyBuilder);
+          isNew = true;
+        }
 
+        if (isNew) {
           propertyBuilder.name(pName);
 
           /* In the future, we could ignore setting label and description for other schema
@@ -351,18 +404,29 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
             // still within the path, create object / object array
             Cardinality card = pd.getConstraint(Cardinality.class);
             if (card != null && card.getMaxOccurs() != 1) {
-              propertyBuilder.type(SchemaBase.Type.OBJECT_ARRAY);
+              propertyBuilder.type(
+                  refType.isPresent()
+                      ? SchemaBase.Type.FEATURE_REF_ARRAY
+                      : SchemaBase.Type.OBJECT_ARRAY);
             } else {
-              propertyBuilder.type(SchemaBase.Type.OBJECT);
+              propertyBuilder.type(
+                  refType.isPresent() ? SchemaBase.Type.FEATURE_REF : SchemaBase.Type.OBJECT);
             }
+
+            propertyBuilder.refType(refType);
+            propertyBuilder.embed(
+                transformationHints.containsKey("EMBED")
+                    ? Optional.of(SchemaBase.Embed.ALWAYS)
+                    : Optional.empty());
 
             if (firstObjectBuilder == null) {
               firstObjectBuilder = propertyBuilder;
               this.mappingContext.addFirstObjectBuilderMapping(targetProperty, firstObjectBuilder);
-//              Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(sourceProperty);
-//              if (joinSourcePath.isPresent()) {
-//                firstObjectBuilder.sourcePath(joinSourcePath.get());
-//              }
+              //              Optional<String> joinSourcePath =
+              // this.mappingContext.computeJoinSourcePath(sourceProperty);
+              //              if (joinSourcePath.isPresent()) {
+              //                firstObjectBuilder.sourcePath(joinSourcePath.get());
+              //              }
             }
           }
         }
@@ -371,14 +435,16 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
         if (i < propertyPath.size() - 1) {
 
           // TODO How to identify when to set objectType = Link?
-          // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get TargetFromSchema)
+          // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get
+          // TargetFromSchema)
           // case: Codelist URL
           ChildDefinition cdNext = propertyPath.get(i + 1).getChild();
           PropertyDefinition pdNext = cdNext.asProperty();
           // Workaround: using xlink:title as indicator for setting objectType=Link
           // because ldproxy did not create links for only href without title.
           // The workaround assumes that xlink:title is always accompanied by xlink:href.
-          if (pdNext.getName().toString().equals("{http://www.w3.org/1999/xlink}title")) {
+          if (Objects.nonNull(pdNext)
+              && pdNext.getName().toString().equals("{http://www.w3.org/1999/xlink}title")) {
             propertyBuilder.objectType("Link");
           }
         }
@@ -391,15 +457,15 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   }
 
   /**
-   * @param pd           definition of a property (not representing an object type) that is in the
-   *                     path of a property-relation target property
+   * @param pd definition of a property (not representing an object type) that is in the path of a
+   *     property-relation target property
    * @param propertyPath path up to and including the given property, separated and ending with '.'
    * @return the value to use for the label within the provider configuration
    */
   private String labelValue(PropertyDefinition pd, String propertyPath) {
 
-    Map<String, String> documentationFacets = XtraServerWebApiUtil.parseDescription(
-        pd.getDescription());
+    Map<String, String> documentationFacets =
+        XtraServerWebApiUtil.parseDescription(pd.getDescription());
 
     String result = "${" + propertyPath + "label:-";
     result += documentationFacets.getOrDefault("name", pd.getName().getLocalPart());
@@ -409,15 +475,15 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   }
 
   /**
-   * @param pd           definition of a property (not representing an object type) that is in the
-   *                     path of a property-relation target property
+   * @param pd definition of a property (not representing an object type) that is in the path of a
+   *     property-relation target property
    * @param propertyPath path up to and including the given property, separated and ending with '.'
    * @return the value to use for the description within the provider configuration
    */
   private String descriptionValue(PropertyDefinition pd, String propertyPath) {
 
-    Map<String, String> documentationFacets = XtraServerWebApiUtil.parseDescription(
-        pd.getDescription());
+    Map<String, String> documentationFacets =
+        XtraServerWebApiUtil.parseDescription(pd.getDescription());
 
     String result = "${" + propertyPath + "description:-";
     if (documentationFacets.containsKey("definition")) {
@@ -443,7 +509,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
    *
    * @param value string that may be an XtraServer variable identifier
    * @return the reformatted variable name (if value was an XtraServer variable name), otherwise the
-   * value as-is
+   *     value as-is
    */
   protected String reformatVariable(final String value) {
 
@@ -477,4 +543,3 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
         && pdTypeDef.getName().toString().equals("{http://www.opengis.net/gml/3.2}UomIdentifier");
   }
 }
-
