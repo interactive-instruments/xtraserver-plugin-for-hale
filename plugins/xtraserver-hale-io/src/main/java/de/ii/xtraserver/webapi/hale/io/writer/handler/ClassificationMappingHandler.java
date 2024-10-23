@@ -38,11 +38,8 @@ import eu.esdihumboldt.hale.common.core.service.ServiceManager;
 import eu.esdihumboldt.hale.common.lookup.LookupTable;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
+
+import java.util.*;
 
 /**
  * Transforms the {@link ClassificationMappingFunction} to a {@link FeatureSchema}
@@ -138,8 +135,7 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
 //      codeMappings.forEach((key, value) -> System.out.println("   " + key + ": " + value));
 //      fallbackValue.ifPresent(s -> System.out.println("fallback: " + s));
 
-      ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(targetProperty,
-          sourceProperty.getDefinition());
+      ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
 
       Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
           sourceProperty.getDefinition());
@@ -157,8 +153,16 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
         propertyBuilder.sourcePath(sourcePath);
       }
 
-      ImmutablePropertyTransformation.Builder codelistTrfBuilder = new ImmutablePropertyTransformation.Builder();
+      /*ImmutablePropertyTransformation.Builder codelistTrfBuilder = new ImmutablePropertyTransformation.Builder();
       codelistTrfBuilder.codelist(codelistId);
+      propertyBuilder.addAllTransformationsBuilders(codelistTrfBuilder);*/
+
+      ImmutablePropertyTransformation.Builder codelistTrfBuilder = new ImmutablePropertyTransformation.Builder();
+      Map<String,String> mapping = new LinkedHashMap<>(codeMappings);
+      if (fallbackValue.isPresent()) {
+        mapping.put("*", fallbackValue.get());
+      }
+      codelistTrfBuilder.map(mapping);
       propertyBuilder.addAllTransformationsBuilders(codelistTrfBuilder);
 
       if (nullifyFallback) {
@@ -175,7 +179,7 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
       } else {
         propertyBuilder.type(baseType);
       }
-
+/*
       // create actual codelist entity with ldproxyCfg
       LdproxyCfgWriter ldproxyCfg = mappingContext.getLdproxyCfg();
       ImmutableCodelist.Builder clBuilder = ldproxyCfg.builder().value().codelist();
@@ -185,7 +189,7 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
 
       // add codelist entity to mapping context
       this.mappingContext.addCodeList(codelistId, clBuilder.build());
-
+*/
       return Optional.of(propertyBuilder);
     }
 
