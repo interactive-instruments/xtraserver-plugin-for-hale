@@ -65,10 +65,9 @@ public final class MappingContext {
   private final Map<String, Value> transformationProperties;
   private static final Pattern projectVarPattern = Pattern.compile("\\{\\{project:([^}]+)}}");
 
-  /**
-   * Stores the feature schema builders generated while processing the alignment
-   */
-  private final Map<String, ImmutableFeatureSchema.Builder> featureTypeMappings = new LinkedHashMap<>();
+  /** Stores the feature schema builders generated while processing the alignment */
+  private final Map<String, ImmutableFeatureSchema.Builder> featureTypeMappings =
+      new LinkedHashMap<>();
 
   private final Map<String, Codelist> codeLists = new LinkedHashMap<>();
 
@@ -82,35 +81,38 @@ public final class MappingContext {
   // TODO - not sure if we need a separate set of "current" featureTypeMappings ... maybe in the
   //  future for cases of multiple type-relations for the same target type
 
-//    private final Map<String, ImmutableFeatureSchema.Builder> currentMappingTables = new LinkedHashMap<>();
-//    private final Set<String> missingAssociationTargets = new TreeSet<String>();
+  //    private final Map<String, ImmutableFeatureSchema.Builder> currentMappingTables = new
+  // LinkedHashMap<>();
+  //    private final Set<String> missingAssociationTargets = new TreeSet<String>();
 
   private final URI applicationSchemaUri;
   private final ProjectInfo projectInfo;
   private final URI projectLocation;
   private final IOReporter reporter;
   private final LdproxyCfgWriter ldproxyCfg;
-  private Map<Property,Builder> currentFirstObjectBuilderMappings = new HashMap<>();
-  private Map<String,List<PropertyTransformationHandler>> currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
+  private Map<Property, Builder> currentFirstObjectBuilderMappings = new HashMap<>();
+  private Map<String, List<PropertyTransformationHandler>>
+      currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
 
   /**
    * Constructor Only the first schema is used
    *
-   * @param alignment                the Alignment with all cells
-   * @param schemaspace              the target schema
+   * @param alignment the Alignment with all cells
+   * @param schemaspace the target schema
    * @param transformationProperties Properties used in transformations
-   * @param projectInfo              project info
-   * @param projectLocation          project file
-   * @param reporter                 reporter
-   * @param ldproxyCfg               ldproxyCfg
+   * @param projectInfo project info
+   * @param projectLocation project file
+   * @param reporter reporter
+   * @param ldproxyCfg ldproxyCfg
    */
   public MappingContext(
-          final Alignment alignment,
-          final SchemaSpace schemaspace,
-          final Map<String, Value> transformationProperties,
-          final ProjectInfo projectInfo,
-          final URI projectLocation,
-          final IOReporter reporter, LdproxyCfgWriter ldproxyCfg) {
+      final Alignment alignment,
+      final SchemaSpace schemaspace,
+      final Map<String, Value> transformationProperties,
+      final ProjectInfo projectInfo,
+      final URI projectLocation,
+      final IOReporter reporter,
+      LdproxyCfgWriter ldproxyCfg) {
     this.alignment = Objects.requireNonNull(alignment);
     this.transformationProperties = Objects.requireNonNull(transformationProperties);
 
@@ -155,7 +157,7 @@ public final class MappingContext {
     return this.featureTypeMappings;
   }
 
-  public Map<String,Codelist> getCodeLists() {
+  public Map<String, Codelist> getCodeLists() {
     return this.codeLists;
   }
 
@@ -182,30 +184,43 @@ public final class MappingContext {
     if (currentFeatureTypeMapping != null) {
       FeatureSchema tmpSchema = currentFeatureTypeMapping.build();
       if (!tmpSchema.getPropertyMap().isEmpty()) {
-        currentFeatureTypeMapping.addConcatBuilder().name(tmpSchema.getName()).type(Type.OBJECT).sourcePath(tmpSchema.getSourcePath()).propertyMap(tmpSchema.getPropertyMap());
+        currentFeatureTypeMapping
+            .addConcatBuilder()
+            .name(tmpSchema.getName())
+            .type(Type.OBJECT)
+            .sourcePath(tmpSchema.getSourcePath())
+            .propertyMap(tmpSchema.getPropertyMap());
       }
-      currentFeatureTypeMapping.type(Type.OBJECT).propertyMap(Map.of()).sourcePath(Optional.empty());
-      Builder subMapping = currentFeatureTypeMapping.addConcatBuilder().name(
-              featureTypeName.getLocalPart().toLowerCase(Locale.ENGLISH)).type(Type.OBJECT);
+      currentFeatureTypeMapping
+          .type(Type.OBJECT)
+          .propertyMap(Map.of())
+          .sourcePath(Optional.empty());
+      Builder subMapping =
+          currentFeatureTypeMapping
+              .addConcatBuilder()
+              .name(featureTypeName.getLocalPart().toLowerCase(Locale.ENGLISH))
+              .type(Type.OBJECT);
 
       return subMapping;
     }
 
     currentFeatureTypeMapping =
-            new ImmutableFeatureSchema.Builder().name(
-                    featureTypeName.getLocalPart().toLowerCase(Locale.ENGLISH)).type(Type.OBJECT);
+        new ImmutableFeatureSchema.Builder()
+            .name(featureTypeName.getLocalPart().toLowerCase(Locale.ENGLISH))
+            .type(Type.OBJECT);
     featureTypeMappings.put(key, currentFeatureTypeMapping);
 
     return currentFeatureTypeMapping;
   }
 
-//    void addCurrentMappingTable(final String tableName, final ImmutableFeatureSchema.Builder mappingTable) {
-//        this.currentMappingTables.put(tableName, mappingTable);
-//    }
-//
-//    Collection<ImmutableFeatureSchema.Builder> getCurrentMappingTables() {
-//        return this.currentMappingTables.values();
-//    }
+  //    void addCurrentMappingTable(final String tableName, final ImmutableFeatureSchema.Builder
+  // mappingTable) {
+  //        this.currentMappingTables.put(tableName, mappingTable);
+  //    }
+  //
+  //    Collection<ImmutableFeatureSchema.Builder> getCurrentMappingTables() {
+  //        return this.currentMappingTables.values();
+  //    }
 
   void buildAndClearCurrentInfos() {
     if (this.currentFeatureTypeMapping == null) {
@@ -219,11 +234,12 @@ public final class MappingContext {
     this.currentMainSortKeyField = null;
     this.currentJoinInfoByJoinTableName = new HashMap<>();
     this.currentFirstObjectBuilderMappings = new HashMap<>();
-//        this.currentMappingTables.clear();
+    //        this.currentMappingTables.clear();
     this.currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
   }
 
-  public Map<String,List<PropertyTransformationHandler>> getPropertyHandlersByTargetPropertyPath() {
+  public Map<String, List<PropertyTransformationHandler>>
+      getPropertyHandlersByTargetPropertyPath() {
     return this.currentPropertyHandlersByTargetPropertyPath;
   }
 
@@ -246,18 +262,22 @@ public final class MappingContext {
     return this.currentFeatureTypeMapping;
   }
 
-//    /**
-//     * Return all property paths for which no association target could be found in the schema.
-//     *
-//     * @return list of properties with missing association targets
-//     */
-//    public Set<String> getMissingAssociationTargets() {
-//        return this.missingAssociationTargets;
-//    }
+  public boolean hasCurrentFeatureTypePrimaryGeometry() {
+    return getFeatureBuilder().build().getPrimaryGeometry().isPresent();
+  }
 
-//    void addMissingAssociationTarget(final String associationTarget) {
-//        this.missingAssociationTargets.add(associationTarget);
-//    }
+  //    /**
+  //     * Return all property paths for which no association target could be found in the schema.
+  //     *
+  //     * @return list of properties with missing association targets
+  //     */
+  //    public Set<String> getMissingAssociationTargets() {
+  //        return this.missingAssociationTargets;
+  //    }
+
+  //    void addMissingAssociationTarget(final String associationTarget) {
+  //        this.missingAssociationTargets.add(associationTarget);
+  //    }
 
   Value getTransformationProperty(final String name) {
     final Value val = this.transformationProperties.get(name);
@@ -267,24 +287,26 @@ public final class MappingContext {
     return Value.NULL;
   }
 
-//    /**
-//     * Retrieve table from current FeatureTypeMapping
-//     *
-//     * @param tableName Mapping Table name
-//     * @return MappingTable
-//     */
-//    Optional<ImmutableFeatureSchema.Builder> getTableMapping(String tableName) {
-//        return Optional.ofNullable(currentMappingTables.get(tableName));
-//    }
+  //    /**
+  //     * Retrieve table from current FeatureTypeMapping
+  //     *
+  //     * @param tableName Mapping Table name
+  //     * @return MappingTable
+  //     */
+  //    Optional<ImmutableFeatureSchema.Builder> getTableMapping(String tableName) {
+  //        return Optional.ofNullable(currentMappingTables.get(tableName));
+  //    }
 
-//    void addValueMappingForTable(
-//            final Property target, final ImmutableFeatureSchema.Builder valueMapping, final String tableName) {
-//        final ImmutableFeatureSchema.Builder tableMapping =
-//                getTableMapping(tableName)
-//                        .orElseThrow(() -> new IllegalArgumentException("Table " + tableName + " not found"));
-//
-//        tableMapping.putProperties2(valueMapping.build().getName(), (Builder) valueMapping);
-//    }
+  //    void addValueMappingForTable(
+  //            final Property target, final ImmutableFeatureSchema.Builder valueMapping, final
+  // String tableName) {
+  //        final ImmutableFeatureSchema.Builder tableMapping =
+  //                getTableMapping(tableName)
+  //                        .orElseThrow(() -> new IllegalArgumentException("Table " + tableName + "
+  // not found"));
+  //
+  //        tableMapping.putProperties2(valueMapping.build().getName(), (Builder) valueMapping);
+  //    }
 
   public IOReporter getReporter() {
     return reporter;
@@ -317,18 +339,17 @@ public final class MappingContext {
             projectInfo.getHaleVersion(),
             projectLocation != null ? projectLocation : projectInfo.getName()));
 
-    ImmutableFeatureProviderSqlData.Builder providerData = ldproxyCfg.builder().entity().provider()
-        .id(id);
+    ImmutableFeatureProviderSqlData.Builder providerData =
+        ldproxyCfg.builder().entity().provider().id(id);
 
     providerData
         .labelTemplate("{{value}}{{unit | prepend:' [' | append:']'}}")
         .connectionInfoBuilder()
         .dialect(Dialect.PGIS.name())
-        .host(String.format("${%s.db.host}", id))
-        .database(String.format("${%s.db.name}", id))
-        .user(String.format("${%s.db.user}", id))
-        .password(String.format("${%s.db.password}", id))
-        .addSchemas(String.format("${%s.db.schema:-public}", id));
+        .host(String.format("${%s.db.host:-${db.host}}", id))
+        .database(String.format("${%s.db.name:-${db.name}}", id))
+        .user(String.format("${%s.db.user:-${db.user}}", id))
+        .password(String.format("${%s.db.password:-${db.password}}", id));
 
     featureTypeMappings.values().stream()
         .map(ImmutableFeatureSchema.Builder::build)
@@ -353,7 +374,7 @@ public final class MappingContext {
    *
    * @param str input string
    * @return string with replaced project variables, unresolved variables are replaced with
-   * 'PROJECT_VARIABLE_<VARIABLE_NAME>_NOT_SET'
+   *     'PROJECT_VARIABLE_<VARIABLE_NAME>_NOT_SET'
    */
   public String resolveProjectVars(final String str) {
     final Matcher m = projectVarPattern.matcher(str);
@@ -393,8 +414,15 @@ public final class MappingContext {
         // add join-statement
         JoinInfo ji = this.getCurrentJoinInfoByJoinTableName().get(tableName);
 
-        result = "[" + ji.getBaseTableJoinField() + "=" + ji.getJoinTableJoinField() + "]"
-            + ji.getJoinTableName() + "/" + result;
+        result =
+            "["
+                + ji.getBaseTableJoinField()
+                + "="
+                + ji.getJoinTableJoinField()
+                + "]"
+                + ji.getJoinTableName()
+                + "/"
+                + result;
 
         tableName = ji.getBaseTableName();
       }
@@ -420,7 +448,7 @@ public final class MappingContext {
   }
 
   public void addFirstObjectBuilderMapping(Property targetProperty, Builder firstObjectBuilder) {
-    this.currentFirstObjectBuilderMappings.put(targetProperty,firstObjectBuilder);
+    this.currentFirstObjectBuilderMappings.put(targetProperty, firstObjectBuilder);
   }
 
   public boolean hasFirstObjectBuilderMapping(Property targetProperty) {

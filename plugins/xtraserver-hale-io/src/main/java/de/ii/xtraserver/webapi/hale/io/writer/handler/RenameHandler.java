@@ -32,9 +32,7 @@ import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import java.util.Optional;
 
-/**
- * Transforms the {@link RenameFunction} to a {@link FeatureSchema}
- */
+/** Transforms the {@link RenameFunction} to a {@link FeatureSchema} */
 class RenameHandler extends AbstractPropertyTransformationHandler {
 
   RenameHandler(final MappingContext mappingContext) {
@@ -42,24 +40,24 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
   }
 
   /**
-   * @see TransformationHandler#handle(Cell)
+   * @see TransformationHandler#handle(Cell, String)
    */
   @Override
-  public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-      final Property targetProperty) {
+  public Optional<ImmutableFeatureSchema.Builder> doHandle(
+          final Cell propertyCell, final Property targetProperty, String providerId) {
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
 
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
+    ImmutableFeatureSchema.Builder propertyBuilder =
+        buildPropertyPath(propertyCell, targetProperty);
 
-    Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
-        sourceProperty.getDefinition());
-    String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
-        .getDefinition());
+    Optional<String> joinSourcePath =
+        this.mappingContext.computeJoinSourcePath(sourceProperty.getDefinition());
+    String sourcePath =
+        this.mappingContext.computeSourcePropertyName(sourceProperty.getDefinition());
     if (joinSourcePath.isPresent()) {
       if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
-        this.mappingContext.getFirstObjectBuilder(targetProperty)
-            .sourcePath(joinSourcePath.get());
+        this.mappingContext.getFirstObjectBuilder(targetProperty).sourcePath(joinSourcePath.get());
       } else {
         sourcePath = joinSourcePath.get() + "/" + sourcePath;
       }
@@ -79,21 +77,25 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
    * the value of 'sourcePath' will be moved to 'sourcePaths' as well (if not already done).
    *
    * @param propertyBuilder the builder created for the target property
-   * @param targetProperty  the target of a property relation (as provided to property handlers)
-   * @param sourcePath      the source path to set/add
+   * @param targetProperty the target of a property relation (as provided to property handlers)
+   * @param sourcePath the source path to set/add
    */
-  protected void setTypesAndSourcePaths(Builder propertyBuilder, Property targetProperty,
-      String sourcePath) {
+  protected void setTypesAndSourcePaths(
+      Builder propertyBuilder, Property targetProperty, String sourcePath) {
 
     PropertyDefinition targetPd = getLastPropertyDefinition(targetProperty);
     TypeDefinition td = targetPd.getPropertyType();
-    SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
-        this.mappingContext.getReporter());
+    SchemaBase.Type baseType =
+        XtraServerWebApiUtil.getWebApiType(td, this.mappingContext.getReporter());
 
-    // TODO - Try to identify approach for setting the primary geometry (relevant if a type had multiple such properties).
+    // TODO - Try to identify approach for setting the primary geometry (relevant if a type had
+    // multiple such properties).
     // Would a postprocessing transformation be a solution?
-    if(baseType == Type.GEOMETRY) {
-      propertyBuilder.role(Role.PRIMARY_GEOMETRY);
+    if (baseType == Type.GEOMETRY) {
+      propertyBuilder.role(
+          mappingContext.hasCurrentFeatureTypePrimaryGeometry()
+              ? Role.SECONDARY_GEOMETRY
+              : Role.PRIMARY_GEOMETRY);
       propertyBuilder.geometryType(SimpleFeatureGeometry.ANY);
     }
 
@@ -103,7 +105,8 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
     if (fs.getEffectiveSourcePaths().contains(sourcePath)) {
       // then ignore the property - at least for now
       // TODO - FUTURE WORK (Joins with multiple main tables)
-//            mappingContext.getReporter().warn("Encountered sourcePath "+sourcePath+" again (" +pName +")");
+      //            mappingContext.getReporter().warn("Encountered sourcePath "+sourcePath+" again
+      // (" +pName +")");
     } else {
 
       if (!fs.getSourcePath().isPresent() && fs.getSourcePaths().isEmpty()) {
@@ -122,7 +125,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
         if (fs.getSourcePath().isPresent() && fs.getSourcePaths().isEmpty()) {
 
           /* We encountered another cell that applies to the same target property
-              (with different source path). */
+          (with different source path). */
 
           // move current sourcePath to sourcePaths, then unset sourcePath
           propertyBuilder.addSourcePaths(fs.getSourcePath().get());
@@ -136,6 +139,5 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
         propertyBuilder.addSourcePaths(sourcePath);
       }
     }
-
   }
 }

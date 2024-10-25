@@ -60,6 +60,7 @@ public class XtraServerWebApiUtil {
         put("MultiSurfacePropertyType", SchemaBase.Type.GEOMETRY);
         put("PointPropertyType", SchemaBase.Type.GEOMETRY);
         put("GeometricPrimitivePropertyType", SchemaBase.Type.GEOMETRY);
+        put("SurfacePropertyType", SchemaBase.Type.GEOMETRY);
 
         // GML Measure types
         put("AngleType", SchemaBase.Type.FLOAT);
