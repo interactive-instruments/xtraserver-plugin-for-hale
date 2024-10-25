@@ -176,7 +176,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
       List<String> docs = propertyCell.getDocumentation().get(null);
 
       if (!docs.isEmpty() && docs.get(0).contains("{{XTRASERVER:")) {
-        Matcher matcher = Pattern.compile("\\{\\{XTRASERVER:(\\w+)(?:=(.+?))?}}").matcher(docs.get(0));
+        Matcher matcher =
+            Pattern.compile("\\{\\{XTRASERVER:(\\w+)(?:=(.+?))?}}").matcher(docs.get(0));
 
         while (matcher.find()) {
           hints.put(matcher.group(1), matcher.group(2) != null ? matcher.group(2) : "true");
@@ -201,7 +202,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
    * mappings could make use of it).
    */
   @Override
-  public final ImmutableFeatureSchema.Builder handle(final Cell propertyCell) {
+  public final ImmutableFeatureSchema.Builder handle(final Cell propertyCell, String providerId) {
 
     final Property targetProperty = XtraServerMappingUtils.getTargetProperty(propertyCell);
     final Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
@@ -249,7 +250,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
     // Apply the actual mapping
     final Optional<ImmutableFeatureSchema.Builder> optionalMappingValue =
-        doHandle(propertyCell, targetProperty);
+        doHandle(propertyCell, targetProperty, providerId);
 
     // Keep track that this handler was applied in mappings for the target property
     propertyHandlersForTargetPropertyPath.add(this);
@@ -267,7 +268,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   }
 
   protected abstract Optional<ImmutableFeatureSchema.Builder> doHandle(
-      final Cell propertyCell, final Property targetProperty);
+          final Cell propertyCell, final Property targetProperty, String providerId);
 
   protected ImmutableFeatureSchema.Builder buildPropertyPath(
       Cell propertyCell, Property targetProperty) {
@@ -332,12 +333,18 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
         boolean isNew = false;
 
         if (propMap.containsKey(pName)) {
-          if (i == propertyPath.size() - 1) {
+          boolean isCoalesceOrConcat =
+              transformationHints.containsKey("CHOICE")
+                  || isMultiValuedPropertyPerSchemaDefinition(pd);
+
+          if (i == propertyPath.size() - 1 && isCoalesceOrConcat) {
             ImmutableFeatureSchema.Builder prevBuilder = propMap.get(pName);
             ImmutableFeatureSchema prev = prevBuilder.build();
             propertyBuilder = new ImmutableFeatureSchema.Builder();
 
-            boolean isCoalesce = transformationHints.containsKey("CHOICE");
+            boolean isCoalesce =
+                transformationHints.containsKey("CHOICE")
+                    || !isMultiValuedPropertyPerSchemaDefinition(pd);
 
             if (isCoalesce) {
               if (prev.getCoalesce().isEmpty()) {
@@ -507,11 +514,12 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
    * Turns a variable that uses the XtraServer variable syntax ('{$some.variable}') into a web api
    * variable name.
    *
-   * @param value string that may be an XtraServer variable identifier
+   * @param value      string that may be an XtraServer variable identifier
+   * @param providerId
    * @return the reformatted variable name (if value was an XtraServer variable name), otherwise the
-   *     value as-is
+   * value as-is
    */
-  protected String reformatVariable(final String value) {
+  protected String reformatVariable(final String value, String providerId) {
 
     String result = value;
 
@@ -519,11 +527,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
       result = value.substring(2, value.length() - 1);
 
-      // TODO - FUTURE WORK: leave variable name as is, once they can be set via cfg.yml
-      result = result.toUpperCase(Locale.ENGLISH);
-      result = result.replaceAll("\\.", "_");
-
-      result = "${" + result + "}";
+      result = String.format("${%1$s.%2$s:-${%2$s}}", providerId, result);
     }
 
     return result;
