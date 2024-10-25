@@ -18,6 +18,7 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 import com.google.common.collect.ListMultimap;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
@@ -36,11 +37,11 @@ class SqlExpressionHandler extends RenameHandler {
   }
 
   /**
-   * @see TransformationHandler#handle(Cell)
+   * @see TransformationHandler#handle(Cell, String)
    */
   @Override
   public Optional<ImmutableFeatureSchema.Builder> doHandle(
-      final Cell propertyCell, final Property targetProperty) {
+          final Cell propertyCell, final Property targetProperty, String providerId) {
 
     ImmutableFeatureSchema.Builder propertyBuilder =
         buildPropertyPath(propertyCell, targetProperty);
@@ -49,7 +50,19 @@ class SqlExpressionHandler extends RenameHandler {
         propertyCell.getTransformationParameters();
     final List<ParameterValue> expressions = parameters.get(PARAMETER_VALUE);
     final String expression = expressions.get(0).as(String.class);
-    final String sourcePath =String.format("[EXPRESSION]{sql=%s}", expression);
+    String sourcePath = String.format("[EXPRESSION]{sql=%s}", expression);
+
+    Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
+
+    Optional<String> joinSourcePath =
+        this.mappingContext.computeJoinSourcePath(sourceProperty.getDefinition());
+    if (joinSourcePath.isPresent()) {
+      if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+        this.mappingContext.getFirstObjectBuilder(targetProperty).sourcePath(joinSourcePath.get());
+      } else {
+        sourcePath = joinSourcePath.get() + "/" + sourcePath;
+      }
+    }
 
     setTypesAndSourcePaths(propertyBuilder, targetProperty, sourcePath);
 
