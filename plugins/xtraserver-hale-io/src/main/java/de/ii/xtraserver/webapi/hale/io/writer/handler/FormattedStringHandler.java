@@ -52,11 +52,11 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
   }
 
   /**
-   * @see TransformationHandler#handle(Cell)
+   * @see TransformationHandler#handle(Cell, String)
    */
   @Override
   public Optional<ImmutableFeatureSchema.Builder> doHandle(
-      final Cell propertyCell, final Property targetProperty) {
+      final Cell propertyCell, final Property targetProperty, String providerId) {
 
     // Get the formatted string from parameters
     final ListMultimap<String, ParameterValue> parameters =
@@ -216,6 +216,25 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
           } else {
             propertyBuilder.addSourcePaths(sourcePath);
           }
+
+          /* TODO: create object with objectReduceFormat transformation
+          Type type = propertyBuilder.build().getType();
+          propertyBuilder.type(Type.OBJECT);
+          propertyBuilder.sourcePath(joinSourcePath);
+          if (joinSourcePath.isPresent()) {
+            if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+              this.mappingContext
+                      .getFirstObjectBuilder(targetProperty)
+                      .sourcePath(joinSourcePath.get());
+            } else {
+              propertyBuilder.sourcePath(joinSourcePath);
+            }
+          }
+          for (PropertyEntityDefinition ped : variableSourceEntities) {
+            String name = this.mappingContext.computeSourcePropertyName(ped);
+            propertyBuilder.putProperties2(
+                    name, new ImmutableFeatureSchema.Builder().type(type).name(name).sourcePath(name));
+          }*/
         }
       }
 

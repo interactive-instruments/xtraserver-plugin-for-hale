@@ -42,11 +42,11 @@ class CustomFunctionAdvToLocalId extends FormattedStringHandler {
   }
 
   /**
-   * @see AbstractPropertyTransformationHandler#doHandle(Cell, Property)
+   * @see AbstractPropertyTransformationHandler#doHandle(Cell, Property, String)
    */
   @Override
   public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-      final Property targetProperty) {
+                                                           final Property targetProperty, String providerId) {
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
 

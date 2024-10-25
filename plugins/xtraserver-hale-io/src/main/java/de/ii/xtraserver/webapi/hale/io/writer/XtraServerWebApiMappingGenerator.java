@@ -191,7 +191,7 @@ public class XtraServerWebApiMappingGenerator {
         }*/
         // PROCESSING
 
-        ImmutableFeatureSchema.Builder typeBuilder = typeHandler.handle(typeCell);
+        ImmutableFeatureSchema.Builder typeBuilder = typeHandler.handle(typeCell, providerId);
         this.progress.setCurrentTask(
             "Mapping values for Feature Type " + mappingContext.getFeatureTypeName());
 
@@ -205,7 +205,7 @@ public class XtraServerWebApiMappingGenerator {
           final PropertyTransformationHandler propertyHandler =
               propertyHandlerFactory.create(propertyCell.getTransformationIdentifier());
           if (propertyHandler != null) {
-            propertyHandler.handle(new CellParentWrapper(typeCell, propertyCell));
+            propertyHandler.handle(new CellParentWrapper(typeCell, propertyCell), providerId);
           }
           this.progress.advance(1);
         }

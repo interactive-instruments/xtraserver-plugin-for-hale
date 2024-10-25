@@ -47,11 +47,11 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
   }
 
   /**
-   * @see AbstractPropertyTransformationHandler#doHandle(Cell, Property)
+   * @see AbstractPropertyTransformationHandler#doHandle(Cell, Property, String)
    */
   @Override
   protected Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-      final Property targetProperty) {
+                                                              final Property targetProperty, String providerId) {
 
     // identify regex expression
     final ListMultimap<String, ParameterValue> parameters = propertyCell

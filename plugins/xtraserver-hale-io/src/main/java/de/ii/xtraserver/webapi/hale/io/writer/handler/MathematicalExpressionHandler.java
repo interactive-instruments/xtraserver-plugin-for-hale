@@ -34,10 +34,10 @@ class MathematicalExpressionHandler extends AbstractPropertyTransformationHandle
 	}
 
 	/**
-	 * @see TransformationHandler#handle(Cell)
+	 * @see TransformationHandler#handle(Cell, String)
 	 */
 	@Override
-	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty, String providerId) {
 
 		return Optional.empty();
 	}

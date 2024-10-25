@@ -37,11 +37,10 @@ class CustomFunctionAdvToNamespace extends FormattedStringHandler {
 	}
 
 	/**
-	 * @see AbstractPropertyTransformationHandler#doHandle(Cell,
-	 *      Property)
+	 * @see AbstractPropertyTransformationHandler#doHandle(Cell, Property, String)
 	 */
 	@Override
-	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty, String providerId) {
 
 		final Value inspireNamespace = mappingContext
 				.getTransformationProperty(MappingContext.PROPERTY_INSPIRE_NAMESPACE);
@@ -53,7 +52,7 @@ class CustomFunctionAdvToNamespace extends FormattedStringHandler {
 		} else {
 
 			String value = inspireNamespace.as(String.class);
-			value = reformatVariable(value);
+			value = reformatVariable(value, providerId);
 
 			ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty
 			);

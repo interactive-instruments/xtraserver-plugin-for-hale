@@ -18,17 +18,16 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 import static eu.esdihumboldt.hale.common.align.model.functions.JoinFunction.PARAMETER_JOIN;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import eu.esdihumboldt.hale.common.align.model.AlignmentUtil;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.align.model.ParameterValue;
 import eu.esdihumboldt.hale.common.align.model.functions.JoinFunction;
 import eu.esdihumboldt.hale.common.align.model.functions.join.JoinParameter;
-import eu.esdihumboldt.hale.common.align.model.functions.join.JoinParameter.JoinCondition;
 import eu.esdihumboldt.hale.common.align.model.impl.TypeEntityDefinition;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,7 +41,7 @@ class JoinHandler extends AbstractTypeTransformationHandler {
 	}
 
 	/**
-	 * @see TypeTransformationHandler#handle(Cell)
+	 * @see TransformationHandler#handle(Cell, String)
 	 */
 	@Override
 	public void doHandle(final Collection<? extends Entity> sourceTypes, final Entity targetType,

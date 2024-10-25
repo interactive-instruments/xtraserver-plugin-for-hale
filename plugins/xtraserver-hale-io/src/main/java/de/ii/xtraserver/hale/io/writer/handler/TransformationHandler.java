@@ -28,10 +28,16 @@ import eu.esdihumboldt.hale.common.align.model.Cell;
 public interface TransformationHandler<T> {
 
 	/**
-	 * Transforms an alignment cell into an output type
-	 * 
-	 * @param cell the alignment cell
-	 * @return output type to transform to
-	 */
-	T handle(final Cell cell);
+     * Transforms an alignment cell into an output type
+     *
+     * @param cell       the alignment cell
+     * @param providerId
+     * @return output type to transform to
+     */
+	T handle(final Cell cell, String providerId);
+
+
+	default T handle(final Cell cell) {
+		return handle(cell, null);
+	}
 }

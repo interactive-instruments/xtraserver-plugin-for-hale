@@ -36,7 +36,7 @@ class RenameHandler extends AbstractPropertyTransformationHandler {
 	}
 
 	/**
-	 * @see TransformationHandler#handle(eu.esdihumboldt.hale.common.align.model.Cell)
+	 * @see TransformationHandler#handle(Cell, String)
 	 */
 	@Override
 	public Optional<MappingValue> doHandle(final Cell propertyCell, final Property targetProperty) {

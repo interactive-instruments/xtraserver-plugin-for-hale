@@ -21,7 +21,6 @@ import java.util.Collection;
 import javax.xml.namespace.QName;
 
 import org.geotools.filter.FilterFactoryImpl;
-import org.geotools.filter.text.cql2.CQL;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.filter.visitor.DuplicatingFilterVisitor;
@@ -124,7 +123,7 @@ abstract class AbstractTypeTransformationHandler implements TypeTransformationHa
 	}
 
 	@Override
-	public final FeatureTypeMapping handle(final Cell cell) {
+	public final FeatureTypeMapping handle(final Cell cell, String providerId) {
 		mappingContext.addNextFeatureTypeMapping(getFeatureTypeName(cell));
 
 		final ListMultimap<String, ? extends Entity> sourceEntities = cell.getSource();

@@ -35,11 +35,10 @@ class CustomFunctionAdvToUCUM extends
 	}
 
 	/**
-	 * @see AbstractPropertyTransformationHandler#doHandle(Cell,
-	 *      Property)
+	 * @see AbstractPropertyTransformationHandler#doHandle(Cell, Property, String)
 	 */
 	@Override
-	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty) {
+	public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell, final Property targetProperty, String providerId) {
 
 		return Optional.empty();
 	}

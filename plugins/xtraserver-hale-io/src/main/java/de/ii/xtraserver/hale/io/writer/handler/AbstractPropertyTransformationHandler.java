@@ -185,7 +185,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 	}
 
 	@Override
-	public final MappingValue handle(final Cell propertyCell) {
+	public final MappingValue handle(final Cell propertyCell, String providerId) {
 		final Property targetProperty = XtraServerMappingUtils.getTargetProperty(propertyCell);
 		final Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
 

@@ -17,6 +17,7 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraserver.hale.io.writer.handler.TransformationHandler;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
@@ -33,7 +34,7 @@ class RetypeHandler extends AbstractTypeTransformationHandler {
   }
 
   /**
-   * @see TypeTransformationHandler#handle(Cell)
+   * @see TransformationHandler#handle(Cell, String)
    */
   @Override
   public void doHandle(final Collection<? extends Entity> sourceTypes, final Entity targetType,

@@ -52,7 +52,7 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 //	}
 
 	@Override
-	public final ImmutableFeatureSchema.Builder handle(final Cell cell) {
+	public final ImmutableFeatureSchema.Builder handle(final Cell cell, String providerId) {
 
 		QName featureTypeName = XtraServerMappingUtils.getFeatureTypeName(cell);
 		ImmutableFeatureSchema.Builder typeBuilder = mappingContext.addNextFeatureSchema(featureTypeName);

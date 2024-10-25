@@ -49,7 +49,7 @@ class JoinHandler extends AbstractTypeTransformationHandler {
 	}
 
 	/**
-	 * @see TypeTransformationHandler#handle(eu.esdihumboldt.hale.common.align.model.Cell)
+	 * @see TransformationHandler#handle(Cell, String)
 	 */
 	@Override
 	public void doHandle(final Collection<? extends Entity> sourceTypes, final Entity targetType,

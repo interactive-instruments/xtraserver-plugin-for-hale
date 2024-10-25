@@ -17,9 +17,6 @@ package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
-import de.ii.ldproxy.cfg.LdproxyCfgWriter;
-import de.ii.xtraplatform.codelists.domain.Codelist;
-import de.ii.xtraplatform.codelists.domain.ImmutableCodelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -57,11 +54,11 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
   }
 
   /**
-   * @see TransformationHandler#handle(Cell)
+   * @see TransformationHandler#handle(Cell, String)
    */
   @Override
   public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-      final Property targetProperty) {
+                                                           final Property targetProperty, String providerId) {
 
     final ListMultimap<String, ParameterValue> parameters = propertyCell
         .getTransformationParameters();

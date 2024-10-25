@@ -44,11 +44,11 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
   }
 
   /**
-   * @see TransformationHandler#handle(Cell)
+   * @see TransformationHandler#handle(Cell, String)
    */
   @Override
   public Optional<ImmutableFeatureSchema.Builder> doHandle(
-      final Cell propertyCell, final Property targetProperty) {
+          final Cell propertyCell, final Property targetProperty, String providerId) {
 
     PropertyDefinition pdTgtLast = getLastPropertyDefinition(targetProperty);
     String lastTgtPropName = pdTgtLast.getName().getLocalPart();
@@ -64,7 +64,7 @@ class AssignHandler extends AbstractPropertyTransformationHandler {
     final List<ParameterValue> valueParams = parameters.get(PARAMETER_VALUE);
     String value = valueParams.get(0).getStringRepresentation();
     value = mappingContext.resolveProjectVars(value);
-    value = reformatVariable(value);
+    value = reformatVariable(value, providerId);
 
     /*
      * Check if the assignment is a case to generally be ignored.
