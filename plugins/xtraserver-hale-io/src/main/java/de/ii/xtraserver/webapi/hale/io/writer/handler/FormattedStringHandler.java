@@ -246,6 +246,18 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
         propertyBuilder.addAllTransformationsBuilders(trfBuilder);
       }
 
+    } else if (Objects.isNull(sourceProperty)) {
+      // no source property, so we have to create a constant value
+
+      propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
+
+      propertyBuilder.constantValue(formattedStr.toString());
+    } else if (isGmlUomProperty(pd)) {
+      // uom
+
+      propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
+
+      propertyBuilder.unit(formattedStr.toString());
     } else {
       // Simple string without formatting
 
