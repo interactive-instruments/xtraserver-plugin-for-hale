@@ -17,26 +17,9 @@ package de.ii.xtraserver.hale.io.writer.handler;
 
 import static de.interactive_instruments.xtraserver.config.transformer.MappingTransformerMultiJoins.HINT_MULTI_JOIN;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.xml.namespace.QName;
-
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
 import de.interactive_instruments.xtraserver.config.api.FeatureTypeMapping;
 import de.interactive_instruments.xtraserver.config.api.FeatureTypeMappingBuilder;
 import de.interactive_instruments.xtraserver.config.api.MappingTable;
@@ -57,6 +40,21 @@ import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.xml.namespace.QName;
 
 /**
  * The mapping context provides access to the {@link Alignment} and holds all {@link
@@ -156,17 +154,14 @@ public final class MappingContext {
         .values()
         .forEach(
             tableBuilder -> {
-              if (tableBuilder
-                  .buildDraft()
-                  .getQualifiedTargetPath()
-                  .equals(EMPTY_PATH)) {
+              if (tableBuilder.buildDraft().getQualifiedTargetPath().equals(EMPTY_PATH)) {
                 tableBuilder.qualifiedTargetPath(ImmutableList.of());
               }
             });
 
     // connect joining tables
     Lists.reverse(Lists.newArrayList(this.currentMappingTables.values())).stream()
-        .filter(isJoinTable())
+        .filter(isJoinTable().or(isPredicateTable()))
         .map(MappingTableBuilder::build)
         .forEach(
             table -> {
@@ -254,6 +249,13 @@ public final class MappingContext {
                                             .get(0)))));
   }
 
+  private Predicate<MappingTableBuilder> isPredicateTable() {
+    return tableBuilder ->
+        !tableBuilder.buildDraft().getJoinPaths().isEmpty()
+            && tableBuilder.buildDraft().getAllValuesStream().findAny().isEmpty()
+            && !Strings.isNullOrEmpty(tableBuilder.buildDraft().getPredicate());
+  }
+
   /**
    * Returns the name of the currently processed Feature Type Mapping
    *
@@ -328,7 +330,7 @@ public final class MappingContext {
             if (!alreadyHasTargetPath && tableDraft.getValues().isEmpty()) {
               tableBuilder.qualifiedTargetPath(targetPath);
             }
-            //TODO: transformation hint
+            // TODO: transformation hint
             if (alreadyHasTargetPath && !targetPath.equals(tableDraft.getQualifiedTargetPath())) {
               tableBuilder.qualifiedTargetPath(EMPTY_PATH);
               tableBuilder.transformationHint(HINT_MULTI_JOIN, "true");
@@ -354,7 +356,7 @@ public final class MappingContext {
           }
         }
       }
-    } else if(target.getDefinition().getPropertyPath() == null){
+    } else if (target.getDefinition().getPropertyPath() == null) {
       boolean br = true;
     }
 
@@ -376,8 +378,7 @@ public final class MappingContext {
   }
 
   /**
-	 * Return the XtraServerMapping containing all FeatureTypeMappings that were
-	 * propagated
+   * Return the XtraServerMapping containing all FeatureTypeMappings that were propagated
    *
    * @return XtraServerMapping containing all FeatureTypeMappings
    */
