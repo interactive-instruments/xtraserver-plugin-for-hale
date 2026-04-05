@@ -35,19 +35,20 @@ import eu.esdihumboldt.hale.common.core.service.ServiceManager;
 import eu.esdihumboldt.hale.common.lookup.LookupTable;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
-
 import java.util.*;
 
-/**
- * Transforms the {@link ClassificationMappingFunction} to a {@link FeatureSchema}
- */
+/** Transforms the {@link ClassificationMappingFunction} to a {@link FeatureSchema} */
 class ClassificationMappingHandler extends AbstractPropertyTransformationHandler {
 
-  private final static String NOT_CLASSIFIED_ACTION = "notClassifiedAction";
+  private static final String NOT_CLASSIFIED_ACTION = "notClassifiedAction";
 
-  private final static String NULLIFY_VALUE = "NULL_FALLBACK_VALUE";
+  private static final String NULLIFY_VALUE = "NULL_FALLBACK_VALUE";
 
-  private enum NotClassifiedActions {NULL, SOURCE, FIXED}
+  private enum NotClassifiedActions {
+    NULL,
+    SOURCE,
+    FIXED
+  }
 
   ClassificationMappingHandler(final MappingContext mappingContext) {
     super(mappingContext);
@@ -57,15 +58,16 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
    * @see TransformationHandler#handle(Cell, String)
    */
   @Override
-  public Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-                                                           final Property targetProperty, String providerId) {
+  public Optional<ImmutableFeatureSchema.Builder> doHandle(
+      final Cell propertyCell, final Property targetProperty, String providerId) {
 
-    final ListMultimap<String, ParameterValue> parameters = propertyCell
-        .getTransformationParameters();
+    final ListMultimap<String, ParameterValue> parameters =
+        propertyCell.getTransformationParameters();
 
     // Assign DB codes and values from the lookup table
-    final LookupTable lookup = ClassificationMappingUtil.getClassificationLookup(parameters,
-        new ServiceManager(ServiceManager.SCOPE_PROJECT));
+    final LookupTable lookup =
+        ClassificationMappingUtil.getClassificationLookup(
+            parameters, new ServiceManager(ServiceManager.SCOPE_PROJECT));
 
     if (lookup != null) {
 
@@ -73,19 +75,19 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
       final Map<Value, Value> valueMap = lookup.asMap();
 
       for (Value sourceValue : valueMap.keySet()) {
-        final String targetValueStr = mappingContext.resolveProjectVars(
-            valueMap.get(sourceValue).as(String.class));
+        final String targetValueStr =
+            mappingContext.resolveProjectVars(valueMap.get(sourceValue).as(String.class));
         String sourceValueStr = sourceValue.as(String.class);
         // TODO - do we need any specific mapping here?
-//				sourceValueStr = "true".equals(sourceValueStr) ? "t" : sourceValueStr;
-//				sourceValueStr = "false".equals(sourceValueStr) ? "f" : sourceValueStr;
+        //				sourceValueStr = "true".equals(sourceValueStr) ? "t" : sourceValueStr;
+        //				sourceValueStr = "false".equals(sourceValueStr) ? "f" : sourceValueStr;
         codeMappings.put(sourceValueStr, targetValueStr);
       }
 
       Optional<String> fallbackValue = Optional.empty();
       boolean nullifyFallback = false;
-      if (parameters.containsKey(NOT_CLASSIFIED_ACTION) && !parameters.get(NOT_CLASSIFIED_ACTION)
-          .isEmpty()) {
+      if (parameters.containsKey(NOT_CLASSIFIED_ACTION)
+          && !parameters.get(NOT_CLASSIFIED_ACTION).isEmpty()) {
         String action = parameters.get(NOT_CLASSIFIED_ACTION).get(0).getStringRepresentation();
 
         if (Objects.equals(
@@ -94,7 +96,8 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
           fallbackValue = Optional.of(NULLIFY_VALUE);
 
         } else if (Objects.equals(
-            ClassificationMappingHandler.NotClassifiedActions.FIXED.name(), Strings.commonPrefix(
+            ClassificationMappingHandler.NotClassifiedActions.FIXED.name(),
+            Strings.commonPrefix(
                 ClassificationMappingHandler.NotClassifiedActions.FIXED.name(),
                 action.toUpperCase()))) {
 
@@ -114,48 +117,53 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
       TypeDefinition td = targetPd.getPropertyType();
 
       Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-      String sourcePropertyName = sourceProperty.getDefinition().getDefinition().getName()
-          .getLocalPart();
+      String sourcePropertyName =
+          sourceProperty.getDefinition().getDefinition().getName().getLocalPart();
 
       String mainTableNameForCodelist = mappingContext.getMainTableName();
       String codelistId =
-          mainTableNameForCodelist + "." + sourcePropertyName + "-to-" + targetPropertyName
+          mainTableNameForCodelist
+              + "."
+              + sourcePropertyName
+              + "-to-"
+              + targetPropertyName
               + "-classification";
 
       String codelistLabel = codelistId.replaceAll("[.-]", " ");
 
-//      System.out.println("---");
-//      System.out.println("id: " + codelistId);
-//      System.out.println("label: " + codelistLabel);
-//      System.out.println("sourceType: TEMPLATES");
-//      System.out.println("entries:");
-//      codeMappings.forEach((key, value) -> System.out.println("   " + key + ": " + value));
-//      fallbackValue.ifPresent(s -> System.out.println("fallback: " + s));
+      //      System.out.println("---");
+      //      System.out.println("id: " + codelistId);
+      //      System.out.println("label: " + codelistLabel);
+      //      System.out.println("sourceType: TEMPLATES");
+      //      System.out.println("entries:");
+      //      codeMappings.forEach((key, value) -> System.out.println("   " + key + ": " + value));
+      //      fallbackValue.ifPresent(s -> System.out.println("fallback: " + s));
 
-      ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty);
+      ImmutableFeatureSchema.Builder propertyBuilder =
+          buildPropertyPath(propertyCell, targetProperty);
 
-      Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
-          sourceProperty.getDefinition());
-      String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
-          .getDefinition());
-      if (joinSourcePath.isPresent()) {
-        if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
-          this.mappingContext.getFirstObjectBuilder(targetProperty)
-              .sourcePath(joinSourcePath.get());
-          propertyBuilder.sourcePath(sourcePath);
+      Optional<String> joinSourcePath =
+          this.mappingContext.computeJoinSourcePath(sourceProperty.getDefinition());
+      String sourcePath =
+          this.mappingContext.computeSourcePropertyName(sourceProperty.getDefinition());
+
+      if (joinSourcePath.isPresent()
+          && !mappingContext.hasObjectMapping(targetProperty, joinSourcePath.get())) {
+        if (this.mappingContext.hasObjectMapping(targetProperty)) {
+          this.mappingContext.getLastObjectBuilder(targetProperty).sourcePath(joinSourcePath.get());
         } else {
-          propertyBuilder.sourcePath(joinSourcePath.get() + "/" + sourcePath);
+          sourcePath = joinSourcePath.get() + "/" + sourcePath;
         }
-      } else {
-        propertyBuilder.sourcePath(sourcePath);
       }
+      propertyBuilder.sourcePath(sourcePath);
 
       /*ImmutablePropertyTransformation.Builder codelistTrfBuilder = new ImmutablePropertyTransformation.Builder();
       codelistTrfBuilder.codelist(codelistId);
       propertyBuilder.addAllTransformationsBuilders(codelistTrfBuilder);*/
 
-      ImmutablePropertyTransformation.Builder codelistTrfBuilder = new ImmutablePropertyTransformation.Builder();
-      Map<String,String> mapping = new LinkedHashMap<>(codeMappings);
+      ImmutablePropertyTransformation.Builder codelistTrfBuilder =
+          new ImmutablePropertyTransformation.Builder();
+      Map<String, String> mapping = new LinkedHashMap<>(codeMappings);
       if (fallbackValue.isPresent()) {
         mapping.put("*", fallbackValue.get());
       }
@@ -163,34 +171,34 @@ class ClassificationMappingHandler extends AbstractPropertyTransformationHandler
       propertyBuilder.addAllTransformationsBuilders(codelistTrfBuilder);
 
       if (nullifyFallback) {
-        ImmutablePropertyTransformation.Builder nullifyTrfBuilder = new ImmutablePropertyTransformation.Builder();
+        ImmutablePropertyTransformation.Builder nullifyTrfBuilder =
+            new ImmutablePropertyTransformation.Builder();
         nullifyTrfBuilder.addNullify(NULLIFY_VALUE);
         propertyBuilder.addAllTransformationsBuilders(nullifyTrfBuilder);
       }
 
-      SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
-          this.mappingContext.getReporter());
+      SchemaBase.Type baseType =
+          XtraServerWebApiUtil.getWebApiType(td, this.mappingContext.getReporter());
       if (isMultiValuedPropertyPerSchemaDefinition(targetPd)) {
         propertyBuilder.type(Type.VALUE_ARRAY);
         propertyBuilder.valueType(baseType);
       } else {
         propertyBuilder.type(baseType);
       }
-/*
-      // create actual codelist entity with ldproxyCfg
-      LdproxyCfgWriter ldproxyCfg = mappingContext.getLdproxyCfg();
-      ImmutableCodelist.Builder clBuilder = ldproxyCfg.builder().value().codelist();
-      clBuilder.label(codelistLabel).sourceType(Codelist.ImportType.TEMPLATES);
-      clBuilder.entries(codeMappings);
-      clBuilder.fallback(fallbackValue);
+      /*
+            // create actual codelist entity with ldproxyCfg
+            LdproxyCfgWriter ldproxyCfg = mappingContext.getLdproxyCfg();
+            ImmutableCodelist.Builder clBuilder = ldproxyCfg.builder().value().codelist();
+            clBuilder.label(codelistLabel).sourceType(Codelist.ImportType.TEMPLATES);
+            clBuilder.entries(codeMappings);
+            clBuilder.fallback(fallbackValue);
 
-      // add codelist entity to mapping context
-      this.mappingContext.addCodeList(codelistId, clBuilder.build());
-*/
+            // add codelist entity to mapping context
+            this.mappingContext.addCodeList(codelistId, clBuilder.build());
+      */
       return Optional.of(propertyBuilder);
     }
 
     return Optional.empty();
   }
-
 }

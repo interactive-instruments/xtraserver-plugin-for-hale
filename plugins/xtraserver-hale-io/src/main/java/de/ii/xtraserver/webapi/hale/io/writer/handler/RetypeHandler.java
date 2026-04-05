@@ -24,9 +24,7 @@ import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
 import eu.esdihumboldt.hale.common.align.model.functions.RetypeFunction;
 import java.util.Collection;
 
-/**
- * Transforms the {@link RetypeFunction} to a {@link FeatureSchema}
- */
+/** Transforms the {@link RetypeFunction} to a {@link FeatureSchema} */
 class RetypeHandler extends AbstractTypeTransformationHandler {
 
   RetypeHandler(final MappingContext mappingContext) {
@@ -37,7 +35,9 @@ class RetypeHandler extends AbstractTypeTransformationHandler {
    * @see TransformationHandler#handle(Cell, String)
    */
   @Override
-  public void doHandle(final Collection<? extends Entity> sourceTypes, final Entity targetType,
+  public void doHandle(
+      final Collection<? extends Entity> sourceTypes,
+      final Entity targetType,
       final Cell typeCell) {
 
     EntityDefinition sourceType = sourceTypes.iterator().next().getDefinition();
@@ -45,5 +45,7 @@ class RetypeHandler extends AbstractTypeTransformationHandler {
     ImmutableFeatureSchema.Builder builder = mappingContext.getFeatureBuilder();
 
     this.mappingContext.setMainEntityDefinition(sourceType);
+
+    createTableIfAbsent(sourceType);
   }
 }

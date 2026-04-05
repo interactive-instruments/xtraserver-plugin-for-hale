@@ -189,33 +189,33 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
       if (variables.size() == 1) {
         String sourcePath =
             this.mappingContext.computeSourcePropertyName(variableSourceEntities.get(0));
-        if (joinSourcePath.isPresent()) {
-          if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+
+        if (joinSourcePath.isPresent()
+            && !mappingContext.hasObjectMapping(targetProperty, joinSourcePath.get())) {
+          if (this.mappingContext.hasObjectMapping(targetProperty)) {
             this.mappingContext
-                .getFirstObjectBuilder(targetProperty)
+                .getLastObjectBuilder(targetProperty)
                 .sourcePath(joinSourcePath.get());
-            propertyBuilder.sourcePath(sourcePath);
           } else {
-            propertyBuilder.sourcePath(joinSourcePath.get() + "/" + sourcePath);
+            sourcePath = joinSourcePath.get() + "/" + sourcePath;
           }
-        } else {
-          propertyBuilder.sourcePath(sourcePath);
         }
+        propertyBuilder.sourcePath(sourcePath);
       } else {
         for (PropertyEntityDefinition ped : variableSourceEntities) {
           String sourcePath = this.mappingContext.computeSourcePropertyName(ped);
-          if (joinSourcePath.isPresent()) {
-            if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
+
+          if (joinSourcePath.isPresent()
+              && !mappingContext.hasObjectMapping(targetProperty, joinSourcePath.get())) {
+            if (this.mappingContext.hasObjectMapping(targetProperty)) {
               this.mappingContext
-                  .getFirstObjectBuilder(targetProperty)
+                  .getLastObjectBuilder(targetProperty)
                   .sourcePath(joinSourcePath.get());
-              propertyBuilder.addSourcePaths(sourcePath);
             } else {
-              propertyBuilder.addSourcePaths(joinSourcePath.get() + "/" + sourcePath);
+              sourcePath = joinSourcePath.get() + "/" + sourcePath;
             }
-          } else {
-            propertyBuilder.addSourcePaths(sourcePath);
           }
+          propertyBuilder.addSourcePaths(sourcePath);
 
           /* TODO: create object with objectReduceFormat transformation
           Type type = propertyBuilder.build().getType();
@@ -267,16 +267,15 @@ class FormattedStringHandler extends AbstractPropertyTransformationHandler {
           this.mappingContext.computeJoinSourcePath(sourceProperty.getDefinition());
       String sourcePath =
           this.mappingContext.computeSourcePropertyName(sourceProperty.getDefinition());
-      if (joinSourcePath.isPresent()) {
-        if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
-          this.mappingContext
-              .getFirstObjectBuilder(targetProperty)
-              .sourcePath(joinSourcePath.get());
+
+      if (joinSourcePath.isPresent()
+          && !mappingContext.hasObjectMapping(targetProperty, joinSourcePath.get())) {
+        if (this.mappingContext.hasObjectMapping(targetProperty)) {
+          this.mappingContext.getLastObjectBuilder(targetProperty).sourcePath(joinSourcePath.get());
         } else {
           sourcePath = joinSourcePath.get() + "/" + sourcePath;
         }
       }
-
       propertyBuilder.sourcePath(sourcePath);
 
       ImmutablePropertyTransformation.Builder trfBuilder =

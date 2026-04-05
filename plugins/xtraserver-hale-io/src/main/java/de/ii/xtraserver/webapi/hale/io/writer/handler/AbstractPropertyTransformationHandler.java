@@ -22,14 +22,13 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Role;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.hale.io.writer.handler.CellParentWrapper;
-import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil.PropertyPath;
 import eu.esdihumboldt.hale.common.align.model.*;
 import eu.esdihumboldt.hale.common.schema.model.ChildDefinition;
 import eu.esdihumboldt.hale.common.schema.model.PropertyDefinition;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Cardinality;
 import eu.esdihumboldt.hale.common.schema.model.constraint.property.Reference;
-import eu.esdihumboldt.hale.common.schema.model.impl.DefaultGroupPropertyDefinition;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAppInfo;
 import eu.esdihumboldt.hale.io.xsd.constraint.XmlAttributeFlag;
 import java.util.*;
@@ -268,7 +267,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   }
 
   protected abstract Optional<ImmutableFeatureSchema.Builder> doHandle(
-          final Cell propertyCell, final Property targetProperty, String providerId);
+      final Cell propertyCell, final Property targetProperty, String providerId);
 
   protected ImmutableFeatureSchema.Builder buildPropertyPath(
       Cell propertyCell, Property targetProperty) {
@@ -280,16 +279,14 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
     ImmutableFeatureSchema.Builder typeBuilder = mappingContext.getFeatureBuilder();
 
-    List<ChildContext> propertyPath = targetProperty.getDefinition().getPropertyPath();
+    PropertyPath propertyPath = PropertyPath.of(targetProperty);
 
     Map<String, Builder> propMap = typeBuilder.getPropertyMap();
     ImmutableFeatureSchema.Builder propertyBuilder = null;
 
     // keep track of real property path, to be used as variable name in label and description
-    StringBuilder propertyPathTracker = new StringBuilder();
-    propertyPathTracker
-        .append(this.mappingContext.getFeatureTypeName().toLowerCase(Locale.ENGLISH))
-        .append(".");
+    // PropertyPath propertyPathTracker = new PropertyPath();
+    // propertyPathTracker.append(this.mappingContext.getFeatureTypeName());
 
     Map<String, String> transformationHints = checkNotesForTransformationHints(propertyCell);
 
@@ -297,23 +294,18 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
     for (int i = 0; i < propertyPath.size(); i++) {
 
-      ChildDefinition cd = propertyPath.get(i).getChild();
-
-      if (cd instanceof DefaultGroupPropertyDefinition) {
+      if (propertyPath.isGroup(i)) {
         // ignore choice group definition in the path
         continue;
       }
 
-      PropertyDefinition pd = cd.asProperty();
-      String pName = pd.getName().getLocalPart();
+      String pName = propertyPath.getName(i);
 
-      boolean isClassRepresentingElement = Character.isUpperCase(pName.codePointAt(0));
-
-      if (isClassRepresentingElement) {
+      if (propertyPath.isObject(i)) {
 
         propertyBuilder.objectType(pName);
 
-      } else if (isGmlUomProperty(pd) && i == propertyPath.size() - 1) {
+      } else if (isGmlUomProperty(propertyPath, i) && i == propertyPath.size() - 1) {
 
         // ignore this property when building the path
         // return the builder for the second-to-last property instead
@@ -323,19 +315,18 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
         break;
 
       } else {
-        if (refType.isPresent()
-            && pd.getName().toString().equals("{http://www.w3.org/1999/xlink}href")) {
+        if (refType.isPresent() && propertyPath.has(i, "http://www.w3.org/1999/xlink", "href")) {
           pName = "id";
         }
 
-        propertyPathTracker.append(pName.toLowerCase(Locale.ENGLISH)).append(".");
+        // TODO: id
+        // propertyPathTracker.append(pName);
 
         boolean isNew = false;
 
         if (propMap.containsKey(pName)) {
           boolean isCoalesceOrConcat =
-              transformationHints.containsKey("CHOICE")
-                  || isMultiValuedPropertyPerSchemaDefinition(pd);
+              transformationHints.containsKey("CHOICE") || propertyPath.isMulti(i);
 
           if (i == propertyPath.size() - 1 && isCoalesceOrConcat) {
             ImmutableFeatureSchema.Builder prevBuilder = propMap.get(pName);
@@ -343,8 +334,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
             propertyBuilder = new ImmutableFeatureSchema.Builder();
 
             boolean isCoalesce =
-                transformationHints.containsKey("CHOICE")
-                    || !isMultiValuedPropertyPerSchemaDefinition(pd);
+                transformationHints.containsKey("CHOICE") || !propertyPath.isMulti(i);
 
             if (isCoalesce) {
               if (prev.getCoalesce().isEmpty()) {
@@ -386,11 +376,12 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
           /* In the future, we could ignore setting label and description for other schema
           elements as well, e.g. XML attributes @codeList and @codeListValue.*/
-          if (!(pd.getName().toString().equals("{http://www.w3.org/1999/xlink}title")
-              || pd.getName().toString().equals("{http://www.w3.org/1999/xlink}href"))) {
-            String label = labelValue(pd, propertyPathTracker.toString());
+          if (!(propertyPath.has(i, "http://www.w3.org/1999/xlink", "title")
+              || propertyPath.has(i, "http://www.w3.org/1999/xlink", "href"))) {
+            String label = labelValue(propertyPath, i, mappingContext.getFeatureTypeName());
             propertyBuilder.label(label);
-            String description = descriptionValue(pd, propertyPathTracker.toString());
+            String description =
+                descriptionValue(propertyPath, i, mappingContext.getFeatureTypeName());
             propertyBuilder.description(description);
           }
 
@@ -409,8 +400,7 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
           if (i < propertyPath.size() - 1) {
 
             // still within the path, create object / object array
-            Cardinality card = pd.getConstraint(Cardinality.class);
-            if (card != null && card.getMaxOccurs() != 1) {
+            if (propertyPath.isMulti(i)) {
               propertyBuilder.type(
                   refType.isPresent()
                       ? SchemaBase.Type.FEATURE_REF_ARRAY
@@ -428,7 +418,8 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
             if (firstObjectBuilder == null) {
               firstObjectBuilder = propertyBuilder;
-              this.mappingContext.addFirstObjectBuilderMapping(targetProperty, firstObjectBuilder);
+              this.mappingContext.addObjectBuilder(
+                  propertyPath.full(i), firstObjectBuilder);
               //              Optional<String> joinSourcePath =
               // this.mappingContext.computeJoinSourcePath(sourceProperty);
               //              if (joinSourcePath.isPresent()) {
@@ -440,18 +431,10 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
 
         // handle cases in which the second-to-last property may already have been created
         if (i < propertyPath.size() - 1) {
-
-          // TODO How to identify when to set objectType = Link?
-          // case: Association (appinfo/targetElement in schema -> getAssociationTarget / get
-          // TargetFromSchema)
-          // case: Codelist URL
-          ChildDefinition cdNext = propertyPath.get(i + 1).getChild();
-          PropertyDefinition pdNext = cdNext.asProperty();
           // Workaround: using xlink:title as indicator for setting objectType=Link
           // because ldproxy did not create links for only href without title.
           // The workaround assumes that xlink:title is always accompanied by xlink:href.
-          if (Objects.nonNull(pdNext)
-              && pdNext.getName().toString().equals("{http://www.w3.org/1999/xlink}title")) {
+          if (propertyPath.has(i + 1, "http://www.w3.org/1999/xlink", "title")) {
             propertyBuilder.objectType("Link");
           }
         }
@@ -463,42 +446,20 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
     return propertyBuilder;
   }
 
-  /**
-   * @param pd definition of a property (not representing an object type) that is in the path of a
-   *     property-relation target property
-   * @param propertyPath path up to and including the given property, separated and ending with '.'
-   * @return the value to use for the label within the provider configuration
-   */
-  private String labelValue(PropertyDefinition pd, String propertyPath) {
-
-    Map<String, String> documentationFacets =
-        XtraServerWebApiUtil.parseDescription(pd.getDescription());
-
-    String result = "${" + propertyPath + "label:-";
-    result += documentationFacets.getOrDefault("name", pd.getName().getLocalPart());
-    result += "}";
-
-    return result;
+  private String labelValue(PropertyPath propertyPath, int index, String featureTypeName) {
+    return String.format(
+        "${%s.%s.label:-%s}",
+        featureTypeName.toLowerCase(Locale.ENGLISH),
+        propertyPath.clean(index).toLowerCase(Locale.ENGLISH),
+        propertyPath.getDoc(index, "name").orElse(propertyPath.getName(index)));
   }
 
-  /**
-   * @param pd definition of a property (not representing an object type) that is in the path of a
-   *     property-relation target property
-   * @param propertyPath path up to and including the given property, separated and ending with '.'
-   * @return the value to use for the description within the provider configuration
-   */
-  private String descriptionValue(PropertyDefinition pd, String propertyPath) {
-
-    Map<String, String> documentationFacets =
-        XtraServerWebApiUtil.parseDescription(pd.getDescription());
-
-    String result = "${" + propertyPath + "description:-";
-    if (documentationFacets.containsKey("definition")) {
-      result += documentationFacets.get("definition");
-    }
-    result += "}";
-
-    return result;
+  private String descriptionValue(PropertyPath propertyPath, int index, String featureTypeName) {
+    return String.format(
+        "${%s.%s.description:-%s}",
+        featureTypeName.toLowerCase(Locale.ENGLISH),
+        propertyPath.clean(index).toLowerCase(Locale.ENGLISH),
+        propertyPath.getDoc(index, "definition").orElse(""));
   }
 
   /**
@@ -514,10 +475,10 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
    * Turns a variable that uses the XtraServer variable syntax ('{$some.variable}') into a web api
    * variable name.
    *
-   * @param value      string that may be an XtraServer variable identifier
+   * @param value string that may be an XtraServer variable identifier
    * @param providerId
    * @return the reformatted variable name (if value was an XtraServer variable name), otherwise the
-   * value as-is
+   *     value as-is
    */
   protected String reformatVariable(final String value, String providerId) {
 
@@ -539,11 +500,15 @@ abstract class AbstractPropertyTransformationHandler implements PropertyTransfor
   }
 
   protected boolean isGmlUomProperty(PropertyDefinition pd) {
-
     String propName = pd.getName().getLocalPart();
     TypeDefinition pdTypeDef = pd.getPropertyType();
 
     return propName.equals("uom")
         && pdTypeDef.getName().toString().equals("{http://www.opengis.net/gml/3.2}UomIdentifier");
+  }
+
+  protected boolean isGmlUomProperty(PropertyPath propertyPath, int index) {
+    return propertyPath.has(index, "uom")
+        && propertyPath.hasType(index, "http://www.opengis.net/gml/3.2", "UomIdentifier");
   }
 }

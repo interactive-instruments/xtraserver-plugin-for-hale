@@ -15,7 +15,9 @@
 
 package de.ii.xtraserver.webapi.hale.io.writer.handler;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import de.ii.ldproxy.cfg.LdproxyCfgWriter;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
@@ -25,7 +27,10 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema.Builder;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql.Dialect;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
+import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil.PropertyPath;
 import de.ii.xtraserver.webapi.hale.io.writer.visitor.FilterInvalidMeasureProperties;
+import de.interactive_instruments.xtraserver.config.api.MappingTableBuilder;
 import de.interactive_instruments.xtraserver.config.api.XtraServerMappingBuilder;
 import eu.esdihumboldt.hale.common.align.model.Alignment;
 import eu.esdihumboldt.hale.common.align.model.Cell;
@@ -35,21 +40,20 @@ import eu.esdihumboldt.hale.common.align.model.impl.PropertyEntityDefinition;
 import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
+import eu.esdihumboldt.hale.common.filter.AbstractGeotoolsFilter;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import java.net.URI;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.namespace.QName;
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
+import org.opengis.filter.Filter;
 
 /**
  * The mapping context provides access to the {@link Alignment} and holds all {@link
@@ -76,6 +80,7 @@ public final class MappingContext {
   private EntityDefinition currentMainEntityDefinition = null;
   private String currentMainTableName = null;
   private String currentMainSortKeyField = null;
+  private final Map<String, MappingTableBuilder> currentMappingTables = new LinkedHashMap<>();
   private Map<String, JoinInfo> currentJoinInfoByJoinTableName = new HashMap<>();
 
   // TODO - not sure if we need a separate set of "current" featureTypeMappings ... maybe in the
@@ -90,7 +95,7 @@ public final class MappingContext {
   private final URI projectLocation;
   private final IOReporter reporter;
   private final LdproxyCfgWriter ldproxyCfg;
-  private Map<Property, Builder> currentFirstObjectBuilderMappings = new HashMap<>();
+  private Map<String, Builder> currentObjectBuilders = new LinkedHashMap<>();
   private Map<String, List<PropertyTransformationHandler>>
       currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
 
@@ -140,6 +145,14 @@ public final class MappingContext {
 
   public String getMainTableName() {
     return this.currentMainTableName;
+  }
+
+  Optional<MappingTableBuilder> getTable(String tableName) {
+    return Optional.ofNullable(currentMappingTables.get(tableName));
+  }
+
+  void addCurrentMappingTable(final String tableName, final MappingTableBuilder mappingTable) {
+    this.currentMappingTables.put(tableName, mappingTable);
   }
 
   public void setMainSortKeyField(String sortKey) {
@@ -221,6 +234,104 @@ public final class MappingContext {
   //    Collection<ImmutableFeatureSchema.Builder> getCurrentMappingTables() {
   //        return this.currentMappingTables.values();
   //    }
+  public List<String> getPredicateProps() {
+    List<String> result = new ArrayList<>();
+
+    List<String> allJoinPaths =
+        Stream.concat(
+                currentFeatureTypeMapping.build().getAllNestedProperties().stream(),
+                currentFeatureTypeMapping.build().getAllNestedConcatProperties().stream())
+            .flatMap(prop -> prop.getEffectiveSourcePaths().stream())
+            .collect(Collectors.toList());
+
+    Lists.reverse(Lists.newArrayList(this.currentMappingTables.values())).stream()
+        .filter(isPredicateTable(allJoinPaths))
+        .map(MappingTableBuilder::build)
+        .forEach(
+            table -> {
+              if (this.currentJoinInfoByJoinTableName.containsKey(table.getName())) {
+                JoinInfo joinInfo = this.currentJoinInfoByJoinTableName.get(table.getName());
+                if (Objects.equals(joinInfo.getBaseTableName(), currentMainTableName)) {
+                  /*if (table.getPredicate().toLowerCase().endsWith(" is null")) {
+                    result.add(
+                        String.format(
+                            "[%s=%s]%s{joinType=LEFT}/%s",
+                            joinInfo.getBaseTableJoinField(),
+                            joinInfo.getJoinTableJoinField(),
+                            table.getName(),
+                            table
+                                .getPredicate()
+                                .toLowerCase()
+                                .replace(" is null", "")
+                                .replace("$t$.", "")));
+                  }*/
+                  if (!XtraServerWebApiUtil.extractColumns(table.getPredicate()).isEmpty()) {
+                    for (String col : XtraServerWebApiUtil.extractColumns(table.getPredicate())) {
+                      result.add(
+                          String.format(
+                              "[%s=%s]%s{joinType=LEFT}/%s",
+                              joinInfo.getBaseTableJoinField(),
+                              joinInfo.getJoinTableJoinField(),
+                              table.getName(),
+                              col));
+                    }
+                  }
+                }
+              }
+            });
+
+    return result;
+  }
+
+  public List<String> getFilters() {
+    List<String> result = new ArrayList<>();
+
+    if (this.currentFeatureTypeMapping == null) {
+      return result;
+    }
+
+    if (currentMainEntityDefinition.getFilter() != null) {
+      try {
+        AbstractGeotoolsFilter filter =
+            (AbstractGeotoolsFilter) currentMainEntityDefinition.getFilter();
+        Filter qualifiedFilter = ECQL.toFilter(filter.getFilterTerm());
+        result.add(ECQL.toCQL(qualifiedFilter));
+      } catch (ClassCastException | CQLException e) {
+        // ignore
+      }
+    }
+
+    final int[] i = {0};
+
+    List<String> allJoinPaths =
+        Stream.concat(
+                currentFeatureTypeMapping.build().getAllNestedProperties().stream(),
+                currentFeatureTypeMapping.build().getAllNestedConcatProperties().stream())
+            .flatMap(prop -> prop.getEffectiveSourcePaths().stream())
+            .collect(Collectors.toList());
+
+    Lists.reverse(Lists.newArrayList(this.currentMappingTables.values())).stream()
+        .filter(isPredicateTable(allJoinPaths))
+        .map(MappingTableBuilder::build)
+        .forEach(
+            table -> {
+              if (this.currentJoinInfoByJoinTableName.containsKey(table.getName())) {
+                JoinInfo joinInfo = this.currentJoinInfoByJoinTableName.get(table.getName());
+                if (Objects.equals(joinInfo.getBaseTableName(), currentMainTableName)) {
+                  /*if (table.getPredicate().toLowerCase().endsWith(" is null")) {
+                    result.add(String.format("pred_%d IS NULL", i[0]++));
+                  }*/
+                  if (!XtraServerWebApiUtil.extractColumns(table.getPredicate()).isEmpty()) {
+                    result.add(
+                        XtraServerWebApiUtil.replaceColumns(table.getPredicate(), "pred", i[0]));
+                    i[0] += XtraServerWebApiUtil.extractColumns(table.getPredicate()).size();
+                  }
+                }
+              }
+            });
+
+    return result;
+  }
 
   void buildAndClearCurrentInfos() {
     if (this.currentFeatureTypeMapping == null) {
@@ -232,10 +343,24 @@ public final class MappingContext {
     this.currentMainEntityDefinition = null;
     this.currentMainTableName = null;
     this.currentMainSortKeyField = null;
-    this.currentJoinInfoByJoinTableName = new HashMap<>();
-    this.currentFirstObjectBuilderMappings = new HashMap<>();
-    //        this.currentMappingTables.clear();
-    this.currentPropertyHandlersByTargetPropertyPath = new HashMap<>();
+    this.currentJoinInfoByJoinTableName.clear();
+    this.currentObjectBuilders.clear();
+    this.currentMappingTables.clear();
+    this.currentPropertyHandlersByTargetPropertyPath.clear();
+  }
+
+  private Predicate<MappingTableBuilder> isPredicateTable(List<String> allJoinPaths) {
+    return tableBuilder ->
+        !Strings.isNullOrEmpty(tableBuilder.buildDraft().getPredicate())
+            && currentJoinInfoByJoinTableName.containsKey(tableBuilder.buildDraft().getName())
+    /*&& allJoinPaths.stream()
+    .noneMatch(
+        path ->
+            path.contains(
+                "]"
+                    + currentJoinInfoByJoinTableName
+                        .get(tableBuilder.buildDraft().getName())
+                        .getJoinTableName()))*/ ;
   }
 
   public Map<String, List<PropertyTransformationHandler>>
@@ -414,6 +539,16 @@ public final class MappingContext {
         // add join-statement
         JoinInfo ji = this.getCurrentJoinInfoByJoinTableName().get(tableName);
 
+        String flags =
+            Optional.ofNullable(currentMappingTables.get(ji.getJoinTableName()))
+                .map(MappingTableBuilder::buildDraft)
+                .filter(mt -> !Strings.isNullOrEmpty(mt.getPredicate()))
+                .map(
+                    table ->
+                        String.format(
+                            "{filter=%s}", XtraServerWebApiUtil.cleanColumns(table.getPredicate())))
+                .orElse("");
+
         result =
             "["
                 + ji.getBaseTableJoinField()
@@ -421,6 +556,7 @@ public final class MappingContext {
                 + ji.getJoinTableJoinField()
                 + "]"
                 + ji.getJoinTableName()
+                + flags
                 + "/"
                 + result;
 
@@ -447,15 +583,33 @@ public final class MappingContext {
     return this.ldproxyCfg;
   }
 
-  public void addFirstObjectBuilderMapping(Property targetProperty, Builder firstObjectBuilder) {
-    this.currentFirstObjectBuilderMappings.put(targetProperty, firstObjectBuilder);
+  public void addObjectBuilder(String path, Builder firstObjectBuilder) {
+    this.currentObjectBuilders.put(path, firstObjectBuilder);
   }
 
-  public boolean hasFirstObjectBuilderMapping(Property targetProperty) {
-    return this.currentFirstObjectBuilderMappings.containsKey(targetProperty);
+  public boolean hasObjectMapping(Property targetProperty) {
+    String path = PropertyPath.of(targetProperty).toString();
+
+    return this.currentObjectBuilders.keySet().stream().anyMatch(path::startsWith);
   }
 
-  public Builder getFirstObjectBuilder(Property targetProperty) {
-    return this.currentFirstObjectBuilderMappings.get(targetProperty);
+  public boolean hasObjectMapping(Property targetProperty, String sourcePath) {
+    String path = PropertyPath.of(targetProperty).toString();
+
+    return this.currentObjectBuilders.entrySet().stream()
+        .anyMatch(
+            entry -> {
+              String sp = entry.getValue().build().getSourcePath().orElse("");
+
+              return path.startsWith(entry.getKey()) && sp.endsWith(sourcePath);
+            });
+  }
+
+  public Builder getLastObjectBuilder(Property targetProperty) {
+    return Lists.reverse(new ArrayList<>(this.currentObjectBuilders.entrySet())).stream()
+        .filter(entry -> PropertyPath.of(targetProperty).startsWith(entry.getKey()))
+        .map(Map.Entry::getValue)
+        .findFirst()
+        .orElse(null);
   }
 }

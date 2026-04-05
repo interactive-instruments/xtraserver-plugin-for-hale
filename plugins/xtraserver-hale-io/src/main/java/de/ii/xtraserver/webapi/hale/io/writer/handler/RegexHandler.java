@@ -37,9 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
-/**
- * Transforms the {@link RegexAnalysisFunction} to a {@link FeatureSchema}
- */
+/** Transforms the {@link RegexAnalysisFunction} to a {@link FeatureSchema} */
 class RegexHandler extends AbstractPropertyTransformationHandler {
 
   RegexHandler(final MappingContext mappingContext) {
@@ -50,12 +48,12 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
    * @see AbstractPropertyTransformationHandler#doHandle(Cell, Property, String)
    */
   @Override
-  protected Optional<ImmutableFeatureSchema.Builder> doHandle(final Cell propertyCell,
-                                                              final Property targetProperty, String providerId) {
+  protected Optional<ImmutableFeatureSchema.Builder> doHandle(
+      final Cell propertyCell, final Property targetProperty, String providerId) {
 
     // identify regex expression
-    final ListMultimap<String, ParameterValue> parameters = propertyCell
-        .getTransformationParameters();
+    final ListMultimap<String, ParameterValue> parameters =
+        propertyCell.getTransformationParameters();
     final List<ParameterValue> regexParam = parameters.get("regexPattern");
     if (regexParam.isEmpty()) {
       throw new IllegalArgumentException("Regular expression not set");
@@ -74,7 +72,10 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
 
     // TODO refactoring - quite similar to code in FormattedStringHandler
     boolean isObjectReference = false;
-    if (targetProperty.getDefinition().getDefinition().getConstraint(Reference.class)
+    if (targetProperty
+        .getDefinition()
+        .getDefinition()
+        .getConstraint(Reference.class)
         .isReference()) {
       final String associationTargetRef = getTargetFromSchema(targetProperty);
       if (associationTargetRef != null) {
@@ -101,14 +102,18 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
         newOutputFormat = mtp.group(2);
 
       } else {
-        mappingContext.getReporter().warn("'Regex Analysis'-relation for object reference encountered." +
-                "The output format - {0} - does not match the expected format. Object reference was not created.",
-            outputFormat);
+        mappingContext
+            .getReporter()
+            .warn(
+                "'Regex Analysis'-relation for object reference encountered."
+                    + "The output format - {0} - does not match the expected format. Object reference was not created.",
+                outputFormat);
       }
     }
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-    ImmutableFeatureSchema.Builder propertyBuilder = buildPropertyPath(propertyCell, targetProperty, refType);
+    ImmutableFeatureSchema.Builder propertyBuilder =
+        buildPropertyPath(propertyCell, targetProperty, refType);
 
     PropertyDefinition pd = getLastPropertyDefinition(targetProperty);
     TypeDefinition td = pd.getPropertyType();
@@ -116,36 +121,38 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
     // check if the property has already been established
     // TODO - FUTURE WORK (multiplicity not supported yet)
     if (!propertyBuilder.build().getEffectiveSourcePaths().isEmpty()) {
-      mappingContext.getReporter().warn(
+      mappingContext
+          .getReporter()
+          .warn(
               "Multiple 'Regex Analysis'-relations for same target property ({0}) not supported yet. Only the first encountered relationship will be encoded. Ignoring regex {1}.",
               fullDisplayPath(targetProperty), regex);
       return Optional.of(propertyBuilder);
     }
 
-    Optional<String> joinSourcePath = this.mappingContext.computeJoinSourcePath(
-        sourceProperty.getDefinition());
-    String sourcePath = this.mappingContext.computeSourcePropertyName(sourceProperty
-        .getDefinition());
-    if (joinSourcePath.isPresent()) {
-      if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
-        this.mappingContext.getFirstObjectBuilder(targetProperty)
-            .sourcePath(joinSourcePath.get());
-        propertyBuilder.sourcePath(sourcePath);
-      } else {
-        propertyBuilder.sourcePath(joinSourcePath.get() + "/" + sourcePath);
-      }
-    } else {
-      propertyBuilder.sourcePath(sourcePath);
-    }
+    Optional<String> joinSourcePath =
+        this.mappingContext.computeJoinSourcePath(sourceProperty.getDefinition());
+    String sourcePath =
+        this.mappingContext.computeSourcePropertyName(sourceProperty.getDefinition());
 
-    ImmutablePropertyTransformation.Builder trfBuilder = new ImmutablePropertyTransformation.Builder();
-    String resultingString = "{{value | replace:'"+regex+"':'"+newOutputFormat+"'}}";
+    if (joinSourcePath.isPresent()
+        && !mappingContext.hasObjectMapping(targetProperty, joinSourcePath.get())) {
+      if (this.mappingContext.hasObjectMapping(targetProperty)) {
+        this.mappingContext.getLastObjectBuilder(targetProperty).sourcePath(joinSourcePath.get());
+      } else {
+        sourcePath = joinSourcePath.get() + "/" + sourcePath;
+      }
+    }
+    propertyBuilder.sourcePath(sourcePath);
+
+    ImmutablePropertyTransformation.Builder trfBuilder =
+        new ImmutablePropertyTransformation.Builder();
+    String resultingString = "{{value | replace:'" + regex + "':'" + newOutputFormat + "'}}";
     trfBuilder.stringFormat(resultingString);
 
     propertyBuilder.addAllTransformationsBuilders(trfBuilder);
 
-    SchemaBase.Type baseType = XtraServerWebApiUtil.getWebApiType(td,
-        this.mappingContext.getReporter());
+    SchemaBase.Type baseType =
+        XtraServerWebApiUtil.getWebApiType(td, this.mappingContext.getReporter());
     if (isMultiValuedPropertyPerSchemaDefinition(pd)) {
       propertyBuilder.type(Type.VALUE_ARRAY);
       propertyBuilder.valueType(baseType);
@@ -155,5 +162,4 @@ class RegexHandler extends AbstractPropertyTransformationHandler {
 
     return Optional.of(propertyBuilder);
   }
-
 }

@@ -20,14 +20,24 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraserver.hale.io.compatibility.XtraServerCompatibilityMode;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
 import de.ii.xtraserver.webapi.hale.io.writer.XtraServerWebApiUtil;
+import de.interactive_instruments.xtraserver.config.api.MappingTableBuilder;
 import eu.esdihumboldt.hale.common.align.model.Cell;
 import eu.esdihumboldt.hale.common.align.model.Entity;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 import javax.xml.namespace.QName;
+
+import eu.esdihumboldt.hale.common.align.model.EntityDefinition;
+import eu.esdihumboldt.hale.common.filter.AbstractGeotoolsFilter;
+import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
+import eu.esdihumboldt.hale.common.schema.model.constraint.type.PrimaryKey;
+import eu.esdihumboldt.hale.io.jdbc.constraints.DatabaseTable;
 import org.geotools.filter.FilterFactoryImpl;
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.filter.visitor.DuplicatingFilterVisitor;
+import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.expression.PropertyName;
 
@@ -118,6 +128,57 @@ public abstract class AbstractTypeTransformationHandler implements TypeTransform
 
 		return result;
 	}
+
+    protected String getPrimaryKey(final TypeDefinition definition) {
+        final PrimaryKey primaryKey = definition.getConstraint(PrimaryKey.class);
+        if (primaryKey == null || primaryKey.getPrimaryKeyPath() == null
+                || primaryKey.getPrimaryKeyPath().isEmpty()) {
+            return null;
+        }
+        return primaryKey.getPrimaryKeyPath().iterator().next().getLocalPart();
+    }
+
+    protected MappingTableBuilder createTableIfAbsent(final EntityDefinition sourceType) {
+        final TypeDefinition sourceTypeDefinition = sourceType.getType();
+        final String tableName = sourceTypeDefinition.getDisplayName();
+
+        return this.mappingContext.getTable(tableName).orElseGet(() -> {
+            MappingTableBuilder table = new MappingTableBuilder();
+            final DatabaseTable dbTable = sourceTypeDefinition.getConstraint(DatabaseTable.class);
+            if (dbTable != null && dbTable.getTableName() != null) {
+                table.name(dbTable.getTableName());
+            }
+            else {
+                table.name(tableName);
+            }
+
+            final String primaryKey = getPrimaryKey(sourceTypeDefinition);
+            if (primaryKey != null) {
+                table.primaryKey(primaryKey);
+            }
+            else {
+                table.primaryKey("id");
+                mappingContext.getReporter().warn(
+                        "No primary key for table \"{0}\" found, assuming \"id\". (context: role=ID in FeatureType \"{1}\")",
+                        tableName, mappingContext.getFeatureTypeName());
+            }
+
+            if (sourceType.getFilter() != null) {
+                try {
+                    AbstractGeotoolsFilter filter = (AbstractGeotoolsFilter) sourceType.getFilter();
+                    Filter qualifiedFilter = (Filter) ECQL.toFilter(filter.getFilterTerm())
+                            .accept(new ResolvePropertyNamesFilterVisitor("T_000_"), null);
+                    table.predicate(ECQL.toCQL(qualifiedFilter).replaceAll("T_000_", "\\$T\\$."));
+                } catch (ClassCastException | CQLException e) {
+                    // ignore
+                }
+            }
+
+            mappingContext.addCurrentMappingTable(tableName, table);
+
+            return table;
+        });
+    }
 
 	public abstract void doHandle(final Collection<? extends Entity> sourceTypes,
 			final Entity targetType, final Cell typeCell);

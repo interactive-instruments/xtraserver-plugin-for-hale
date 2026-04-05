@@ -41,7 +41,7 @@ class SqlExpressionHandler extends RenameHandler {
    */
   @Override
   public Optional<ImmutableFeatureSchema.Builder> doHandle(
-          final Cell propertyCell, final Property targetProperty, String providerId) {
+      final Cell propertyCell, final Property targetProperty, String providerId) {
 
     ImmutableFeatureSchema.Builder propertyBuilder =
         buildPropertyPath(propertyCell, targetProperty);
@@ -53,12 +53,13 @@ class SqlExpressionHandler extends RenameHandler {
     String sourcePath = String.format("[EXPRESSION]{sql=%s}", expression);
 
     Property sourceProperty = XtraServerMappingUtils.getSourceProperty(propertyCell);
-
     Optional<String> joinSourcePath =
         this.mappingContext.computeJoinSourcePath(sourceProperty.getDefinition());
-    if (joinSourcePath.isPresent()) {
-      if (this.mappingContext.hasFirstObjectBuilderMapping(targetProperty)) {
-        this.mappingContext.getFirstObjectBuilder(targetProperty).sourcePath(joinSourcePath.get());
+
+    if (joinSourcePath.isPresent()
+        && !mappingContext.hasObjectMapping(targetProperty, joinSourcePath.get())) {
+      if (this.mappingContext.hasObjectMapping(targetProperty)) {
+        this.mappingContext.getLastObjectBuilder(targetProperty).sourcePath(joinSourcePath.get());
       } else {
         sourcePath = joinSourcePath.get() + "/" + sourcePath;
       }

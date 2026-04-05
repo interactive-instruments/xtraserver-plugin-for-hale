@@ -24,6 +24,8 @@ import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
 import de.ii.xtraserver.hale.io.writer.XtraServerMappingUtils;
@@ -41,7 +43,6 @@ import eu.esdihumboldt.hale.common.core.io.ProgressIndicator;
 import eu.esdihumboldt.hale.common.core.io.Value;
 import eu.esdihumboldt.hale.common.core.io.project.ProjectInfo;
 import eu.esdihumboldt.hale.common.core.io.report.IOReporter;
-import eu.esdihumboldt.hale.common.filter.AbstractGeotoolsFilter;
 import eu.esdihumboldt.hale.common.schema.model.Schema;
 import eu.esdihumboldt.hale.common.schema.model.SchemaSpace;
 import eu.esdihumboldt.hale.common.schema.model.TypeDefinition;
@@ -55,9 +56,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
 import org.apache.commons.lang3.StringUtils;
-import org.geotools.filter.text.cql2.CQLException;
-import org.geotools.filter.text.ecql.ECQL;
-import org.opengis.filter.Filter;
 
 /** Translates an Alignment to a XtraServer Web API Mapping. */
 public class XtraServerWebApiMappingGenerator {
@@ -227,7 +225,7 @@ public class XtraServerWebApiMappingGenerator {
           if (this.mappingContext.getMainSortKeyField() != null) {
             sourcePath += "{sortKey=" + this.mappingContext.getMainSortKeyField() + "}";
           }
-          if (mainEntityDefinition.getFilter() != null) {
+          /*if (mainEntityDefinition.getFilter() != null) {
             try {
               // TODO - Filter auf DB-Spalten noch nicht möglich? Remove-Transformation nutzen?
               AbstractGeotoolsFilter filter =
@@ -239,6 +237,24 @@ public class XtraServerWebApiMappingGenerator {
               sourcePath += "{filter=" + ECQL.toCQL(qualifiedFilter) + "}";
             } catch (ClassCastException | CQLException e) {
               // ignore
+            }
+          }*/
+          if (!mappingContext.getFilters().isEmpty()) {
+            sourcePath +=
+                mappingContext.getFilters().stream()
+                    .collect(Collectors.joining(") AND (", "{filter=(", ")}"));
+          }
+          if (!mappingContext.getPredicateProps().isEmpty()) {
+            List<String> predicateProps = mappingContext.getPredicateProps();
+            for (int i = 0; i < predicateProps.size(); i++) {
+              typeBuilder.putProperties2(
+                  "pred_" + i,
+                  new ImmutableFeatureSchema.Builder()
+                      .sourcePath(predicateProps.get(i))
+                      .type(SchemaBase.Type.STRING)
+                      .addExcludedScopes(
+                          Scope.RETURNABLE, Scope.RECEIVABLE, Scope.QUERYABLE, Scope.SORTABLE)
+                      .ignore(true));
             }
           }
 
